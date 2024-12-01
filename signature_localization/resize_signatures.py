@@ -1,38 +1,39 @@
 import os
-from PIL import Image
-import numpy as np
+from PIL import Image, ImageOps
 
 def resize_signatures():
     input_dir = "data/interim/cropped_signatures/"
     output_dir = "data/interim/resized_signatures/"
     os.makedirs(output_dir, exist_ok=True)
 
-    # Collect dimensions of all images
-    heights = []
-    widths = []
-
-    # Loop through all images in the input folder
+    # Loop through all images in the input folder to determine max dimensions
+    max_width = 0
+    max_height = 0
     for filename in os.listdir(input_dir):
         if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
             img_path = os.path.join(input_dir, filename)
             with Image.open(img_path) as img:
-                widths.append(img.width)
-                heights.append(img.height)
+                max_width = max(max_width, img.width)
+                max_height = max(max_height, img.height)
 
-    # Compute average height and width
-    avg_width = int(np.mean(widths))
-    avg_height = int(np.mean(heights))
-
-    # Resize images and save to the output folder
+    # Loop through images again to add padding and save them
     for filename in os.listdir(input_dir):
         if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
             img_path = os.path.join(input_dir, filename)
             with Image.open(img_path) as img:
-                # Resize the image
-                resized_img = img.resize((avg_width, avg_height))
-                
-                # Save to the output folder
+                # Calculate padding to match max dimensions
+                padding = (
+                    (max_width - img.width) // 2,  # Left padding
+                    (max_height - img.height) // 2, # Top padding
+                    (max_width - img.width + 1) // 2, # Right padding
+                    (max_height - img.height + 1) // 2 # Bottom padding
+                )
+
+                # Add padding to the image (fill with white pixels)
+                padded_img = ImageOps.expand(img, padding, fill=(255, 255, 255))  # White color
+
+                # Save the padded image to the output directory
                 output_path = os.path.join(output_dir, filename)
-                resized_img.save(output_path)
+                padded_img.save(output_path)
 
-    print(f"All images resized to average dimensions ({avg_width}x{avg_height}) and saved to '{output_dir}'")
+    print(f"All images padded to maximum dimensions ({max_width}x{max_height}) and saved to '{output_dir}'")

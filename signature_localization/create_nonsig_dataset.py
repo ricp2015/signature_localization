@@ -10,15 +10,17 @@ def create_nonsig_dataset():
     output_dir = "data/interim/nonsig_dataset"
     annotations_path = "data/raw/fixed_dataset/full_data.csv"
     image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"
+    resized_signatures_dir = "data/interim/resized_signatures/"
     os.makedirs(output_dir, exist_ok=True)
 
     # Load bounding box annotations and image metadata
     annotations = pd.read_csv(annotations_path)
     image_info = pd.read_csv(image_info_path)
 
-    # Crop size (!TODO, change according to average or other resizing method)
-    crop_width = 734
-    crop_height = 177
+    # Get the size of the first image in resized_signatures_dir
+    first_image_path = os.listdir(resized_signatures_dir)[0]
+    first_image = Image.open(os.path.join(resized_signatures_dir, first_image_path))
+    crop_width, crop_height = first_image.size  # Set crop size to match the first image
 
     # Process each document
     for _, image_row in image_info.iterrows():
@@ -55,7 +57,7 @@ def create_nonsig_dataset():
         img_array[mask_array == 255] = [255, 255, 255]  # Colorize masked areas white
         masked_img = Image.fromarray(img_array)
 
-        # Generate non-signature crops
+        # Extract sections based on the dimensions of the first image (crop_width x crop_height)
         for top in range(0, img_height, crop_height):
             for left in range(0, img_width, crop_width):
                 bottom = min(top + crop_height, img_height)
@@ -75,3 +77,7 @@ def create_nonsig_dataset():
                 crop.save(os.path.join(output_dir, crop_filename))
 
     print(f"Non-signature crops saved to '{output_dir}'")
+
+
+if __name__ == "__main__":
+    create_nonsig_dataset()

@@ -7,19 +7,7 @@ from keras import models
 import matplotlib.pyplot as plt
 import ast
 
-documents_dir = "data/raw/signverod_dataset"
-model_path = "model/signature_classifier_model.h5"
-annotations_path = "data/raw/fixed_dataset/full_data.csv"
-image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"
-
-# Load model
-model = models.load_model(model_path)
-
-# Load CSV files
-annotations = pd.read_csv(annotations_path)
-image_info = pd.read_csv(image_info_path)
-
-def get_signature_size(file_name):
+def get_signature_size(file_name, image_info, annotations):
     """
     Get the average size of the signature bounding boxes for the given document.
 
@@ -72,6 +60,18 @@ def split_image(image, piece_size):
     return pieces, coords
 
 def detect_signatures():
+
+    documents_dir = "data/raw/signverod_dataset"
+    model_path = "model/signature_classifier_model.h5"
+    annotations_path = "data/raw/fixed_dataset/full_data.csv"
+    image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"
+
+    # Load model
+    model = models.load_model(model_path)
+
+    # Load CSV files
+    annotations = pd.read_csv(annotations_path)
+    image_info = pd.read_csv(image_info_path)
     # Select a random document
     doc_files = os.listdir(documents_dir)
     random_file = random.choice(doc_files)
@@ -82,7 +82,7 @@ def detect_signatures():
     img_width, img_height = document.size
 
     # Determine the signature piece size from CSV
-    piece_width, piece_height = get_signature_size(random_file)
+    piece_width, piece_height = get_signature_size(random_file, image_info, annotations)
 
     # Split the document into pieces based on signature size
     pieces, coords = split_image(document, (piece_width, piece_height))

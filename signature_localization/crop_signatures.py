@@ -7,11 +7,8 @@ def crop_signatures():
     image_dir = "data/raw/signverod_dataset/"
     output_dir = "data/interim/cropped_signatures/"
     os.makedirs(output_dir, exist_ok=True)
-
-    # Load datasets
     image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"
     annotations_path = "data/raw/fixed_dataset/full_data.csv"
-
     image_info = pd.read_csv(image_info_path)
     annotations = pd.read_csv(annotations_path)
 
@@ -21,7 +18,7 @@ def crop_signatures():
     # Iterate over each signature annotation
     for _, row in signature_annotations.iterrows():
         # Extract the bounding box and related info
-        bbox = ast.literal_eval(row['bbox'])  # Convert string to list
+        bbox = ast.literal_eval(row['bbox'])
         image_id = row['image_id']
         
         # Find the corresponding image info
