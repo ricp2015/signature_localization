@@ -19,8 +19,9 @@ __pycache__/
 *.so
 
 data/**
+!data/
+!data/*/
 !data/**/
-!data/**/.gitkeep
 data/raw/fixed_dataset/**
 data/raw/signverod_dataset/**
 data/interim/cropped_signatures/**
