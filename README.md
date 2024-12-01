@@ -8,54 +8,44 @@ A short description of the project.
 
 ## Project Organization
 
-```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-│
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-│
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-│
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         signature_localization and configuration for tools like black
-│
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-│
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-│
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
-│
-├── setup.cfg          <- Configuration file for flake8
-│
-└── signature_localization   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes signature_localization a Python module
-    │
-    ├── config.py               <- Store useful variables and configuration
-    │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
-```
+### Dataset Preparation and Image Preprocessing
+* **Image Cropping**:
+  * Extract sections containing signatures based on annotated bounding boxes.
+* **Dimensional Normalization**:
+  * Apply padding to standardize image sizes.
+* **Creation of Non-Signature Images**:
+  * Extract random sections from documents that do not overlap with the annotated bounding boxes.
+  * *Extra*: Generate synthetic false positives with artificial noise.
+* **Edge Detection Application**:
+  * Create images with edge detection applied. Various techniques can be tested, with each version given to the CNN for benchmarking (e.g., no edge detection vs. Canny vs. Sobel vs. Laplacian).
 
---------
+### Model Training
+* **Dataset Splitting**:
+  * Divide the dataset into training, validation, and test sets.
+* **Defining and Configuring the CNN**:
+  * Set up a CNN for binary classification (signature/no signature).
+* **Training the Model**:
+  * Monitor metrics during training:
+    * Loss, accuracy, precision, recall, F1-score.
+* **Save the Trained Model Parameters**.
 
+### Document Segmentation
+* **Splitting Documents into Sections**:
+  * Apply a sliding window with fixed dimensions and overlap.
+* **Testing the Classifier on Generated Sections**.
+
+### Signature Localization
+* **Identify the Window with the Highest Classification Score**.
+* **Optional**:
+  * Use a secondary model or algorithm to refine the bounding box precision.
+
+### Final Validation and Testing
+* **Evaluate CNN Performance with Metrics**:
+  * Precision, recall, F1-score for classification.
+  * Intersection over Union (IoU) for localization.
+
+### Extra: Feature Extraction for SVMs + SVM Model Development (Refer to Relevant Papers)
+* **Feature Extraction**:
+  * Histogram of Oriented Gradients (HOG).
+  * Local Binary Patterns (LBP).
+  * Edge detection and edge statistics.
