@@ -19,12 +19,13 @@ __pycache__/
 *.so
 
 # Folders
-/Users/RiccardoPitzanti/Desktop/Uni/Computer Science/Foundations of Data Science/Project/signature_localization/data/raw/fixed_dataset
-/Users/RiccardoPitzanti/Desktop/Uni/Computer Science/Foundations of Data Science/Project/signature_localization/data/raw/signverod_dataset
-/Users/RiccardoPitzanti/Desktop/Uni/Computer Science/Foundations of Data Science/Project/signature_localization/data/interim/cropped_signatures
-/Users/RiccardoPitzanti/Desktop/Uni/Computer Science/Foundations of Data Science/Project/signature_localization/data/interim/nonsig_dataset
-/Users/RiccardoPitzanti/Desktop/Uni/Computer Science/Foundations of Data Science/Project/signature_localization/data/interim/resized_signatures
-
+data/**
+!data/**/.gitkeep
+data/raw/fixed_dataset/**
+data/raw/signverod_dataset/**
+data/interim/cropped_signatures/**
+data/interim/nonsig_dataset/**
+data/interim/resized_signatures/**
 
 # Distribution / packaging
 .Python
