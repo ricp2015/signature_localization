@@ -18,14 +18,15 @@ __pycache__/
 # C extensions
 *.so
 
-# Folders
 data/**
+!data/**/
 !data/**/.gitkeep
 data/raw/fixed_dataset/**
 data/raw/signverod_dataset/**
 data/interim/cropped_signatures/**
 data/interim/nonsig_dataset/**
 data/interim/resized_signatures/**
+
 
 # Distribution / packaging
 .Python
