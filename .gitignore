@@ -18,6 +18,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Folders
+/Users/RiccardoPitzanti/Desktop/Uni/Computer Science/Foundations of Data Science/Project/signature_localization/data/*
+
 # Distribution / packaging
 .Python
 build/
