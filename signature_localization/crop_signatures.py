@@ -2,9 +2,10 @@ import os
 import pandas as pd
 import ast
 from PIL import Image
+from tqdm import tqdm
 
 def crop_signatures():
-    image_dir = "data/raw/signverod_dataset/"
+    image_dir = "data/raw/signverod_dataset/images/"
     output_dir = "data/interim/cropped_signatures/"
     os.makedirs(output_dir, exist_ok=True)
     image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"
@@ -16,7 +17,8 @@ def crop_signatures():
     signature_annotations = annotations[annotations['category_id'] == 1]
 
     # Iterate over each signature annotation
-    for _, row in signature_annotations.iterrows():
+    print("Cropping signatures ...")
+    for _, row in tqdm(signature_annotations.iterrows(), total=len(signature_annotations)):
         # Extract the bounding box and related info
         bbox = ast.literal_eval(row['bbox'])
         image_id = row['image_id']

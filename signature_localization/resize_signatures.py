@@ -1,5 +1,6 @@
 import os
 from PIL import Image, ImageOps
+from tqdm import tqdm
 
 def resize_signatures():
     input_dir = "data/interim/cropped_signatures/"
@@ -17,9 +18,12 @@ def resize_signatures():
                 max_height = max(max_height, img.height)
 
     # Loop through images again to add padding and save them
-    for filename in os.listdir(input_dir):
+    for filename in tqdm(os.listdir(input_dir)):
         if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
             img_path = os.path.join(input_dir, filename)
+            output_path = os.path.join(output_dir, filename)
+            if os.path.exists(output_path):
+                continue
             with Image.open(img_path) as img:
                 # Calculate padding to match max dimensions
                 padding = (
@@ -30,10 +34,8 @@ def resize_signatures():
                 )
 
                 # Add padding to the image (fill with white pixels)
-                padded_img = ImageOps.expand(img, padding, fill=(255, 255, 255))  # White color
+                padded_img = ImageOps.expand(img, padding, fill=0xffffff)  # White color
 
-                # Save the padded image to the output directory
-                output_path = os.path.join(output_dir, filename)
                 padded_img.save(output_path)
 
     print(f"All images padded to maximum dimensions ({max_width}x{max_height}) and saved to '{output_dir}'")

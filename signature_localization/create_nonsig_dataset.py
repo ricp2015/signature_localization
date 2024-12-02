@@ -3,10 +3,10 @@ import ast
 from PIL import Image, ImageDraw
 import numpy as np
 import pandas as pd
-
+from tqdm import tqdm
 
 def create_nonsig_dataset():
-    images_dir = "data/raw/signverod_dataset"
+    images_dir = "data/raw/signverod_dataset/images"
     output_dir = "data/interim/nonsig_dataset"
     annotations_path = "data/raw/fixed_dataset/full_data.csv"
     image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"
@@ -22,8 +22,9 @@ def create_nonsig_dataset():
     first_image = Image.open(os.path.join(resized_signatures_dir, first_image_path))
     crop_width, crop_height = first_image.size  # Set crop size to match the first image
 
+    print("Creating not signed images...")
     # Process each document
-    for _, image_row in image_info.iterrows():
+    for _, image_row in tqdm(image_info.iterrows(), total=len(image_info)):
         image_id = image_row['id']
         file_name = image_row['file_name']
         img_width = int(image_row['width'])
