@@ -3,4 +3,10 @@ flake8
 isort
 pip
 python-dotenv
+kagglehub
+pandas
+pillow
+scikit-learn
+tensorflow
+matplotlib
 -e .
