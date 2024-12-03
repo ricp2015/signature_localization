@@ -13,7 +13,7 @@ def create_data():
     create_nonsig_dataset()
 
 def main():
-    # create_data() # (!TODO checker to verify if already created) For now, just comment this line if already done.
+    create_data() # (!TODO checker to verify if already created) For now, just comment this line if already done.
     train() #!TODO builds and trains a binary classifier (CNN based). For now, comment this line if already trained.
     find_signatures.detect_signatures()
 
