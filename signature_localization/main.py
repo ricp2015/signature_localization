@@ -6,8 +6,8 @@ import binary_classifier_CNN
 import find_signatures
 
 def create_data():
-    # download_dataset()
-    # crop_signatures()
+    download_dataset()
+    crop_signatures()
     resize_signatures()
     create_nonsig_dataset()
 
