@@ -4,6 +4,7 @@ from resize_signatures import resize_signatures
 from create_nonsig_dataset import create_nonsig_dataset
 import binary_classifier_CNN
 import find_signatures
+from pretrained import train
 
 def create_data():
     download_dataset()
@@ -12,8 +13,8 @@ def create_data():
     create_nonsig_dataset()
 
 def main():
-    create_data() # (!TODO checker to verify if already created) For now, just comment this line if already done.
-    binary_classifier_CNN.main() #!TODO builds and trains a binary classifier (CNN based). For now, comment this line if already trained.
+    # create_data() # (!TODO checker to verify if already created) For now, just comment this line if already done.
+    train() #!TODO builds and trains a binary classifier (CNN based). For now, comment this line if already trained.
     find_signatures.detect_signatures()
 
 if __name__ == "__main__":

@@ -32,7 +32,7 @@ def create_dataset(signature_dir, nonsig_dir, img_size=(734, 177)):
     # Process non-signature images
     nonsig_files = os.listdir(nonsig_dir)
     random.shuffle(nonsig_files)  # Shuffle to ensure randomness
-    for file in nonsig_files[:len(sig_files)*4]:  # Match the number of signature images
+    for file in nonsig_files[:len(sig_files)]:  # Match the number of signature images
         img_path = os.path.join(nonsig_dir, file)
         img = Image.open(img_path).convert('L')  # Convert to grayscale
         img = img.resize(img_size)
