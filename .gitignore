@@ -28,6 +28,7 @@ data/raw/signverod_dataset/**
 data/interim/cropped_signatures/**
 data/interim/nonsig_dataset/**
 data/interim/resized_signatures/**
+models/signature_classifier_model.h5
 
 
 # Distribution / packaging

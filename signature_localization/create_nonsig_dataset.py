@@ -1,12 +1,13 @@
 import os
 import ast
+import random
 from PIL import Image, ImageDraw
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
 def create_nonsig_dataset():
-    images_dir = "data/raw/signverod_dataset/images"
+    images_dir = "data/raw/signverod_dataset"
     output_dir = "data/interim/nonsig_dataset"
     annotations_path = "data/raw/fixed_dataset/full_data.csv"
     image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"
@@ -22,19 +23,39 @@ def create_nonsig_dataset():
     first_image = Image.open(os.path.join(resized_signatures_dir, first_image_path))
     crop_width, crop_height = first_image.size  # Set crop size to match the first image
 
-    print("Creating not signed images...")
-    # Process each document
-    for _, image_row in tqdm(image_info.iterrows(), total=len(image_info)):
+    print(f"Crop size set to: {crop_width} x {crop_height}")
+
+    print("Selecting 50% of the images...")
+    # Randomly select 50% of the images from the dataset
+    image_files = list(image_info['file_name'])
+    selected_files = random.sample(image_files, len(image_files) // 2)
+
+    # Normalize image file names in the directory
+    available_files = {f.lower(): f for f in os.listdir(images_dir) if os.path.isfile(os.path.join(images_dir, f))}
+
+    print("Creating non-signature images...")
+    # Process each selected document
+    for file_name in tqdm(selected_files):
+        normalized_file_name = file_name.lower()
+
+        # Check if the normalized file name exists in the directory
+        if normalized_file_name not in available_files:
+            print(f"Image {file_name} not found in normalized directory, skipping.")
+            continue
+
+        actual_file_name = available_files[normalized_file_name]
+        image_row = image_info[image_info['file_name'] == file_name].iloc[0]
         image_id = image_row['id']
-        file_name = image_row['file_name']
         img_width = int(image_row['width'])
         img_height = int(image_row['height'])
-        img_path = os.path.join(images_dir, file_name)
-        
-        # Open the image
-        if not os.path.exists(img_path):
-            print(f"Image {file_name} not found, skipping.")
+        img_path = os.path.join(images_dir, actual_file_name)
+
+        # Skip if the image is smaller than the crop size
+        if img_width < crop_width or img_height < crop_height:
+            print(f"Image {file_name} is too small for cropping, skipping.")
             continue
+
+        # Open the image
         img = Image.open(img_path).convert("RGB")
 
         # Create a white mask for the signature regions
@@ -58,27 +79,23 @@ def create_nonsig_dataset():
         img_array[mask_array == 255] = [255, 255, 255]  # Colorize masked areas white
         masked_img = Image.fromarray(img_array)
 
-        # Extract sections based on the dimensions of the first image (crop_width x crop_height)
-        for top in range(0, img_height, crop_height):
-            for left in range(0, img_width, crop_width):
-                bottom = min(top + crop_height, img_height)
-                right = min(left + crop_width, img_width)
-                
+        # Extract sections based on the dimensions of the crop (crop_width x crop_height)
+        for top in range(0, img_height - crop_height + 1, crop_height):
+            for left in range(0, img_width - crop_width + 1, crop_width):
                 # Crop the region
-                crop = masked_img.crop((left, top, right, bottom))
-                
+                crop = masked_img.crop((left, top, left + crop_width, top + crop_height))
+
                 # Skip crops containing too much white (masked signature regions)
                 crop_array = np.array(crop)
                 white_ratio = np.sum(crop_array == 255) / crop_array.size
                 if white_ratio > 0.9:  # Skip if more than 90% of the crop is white
                     continue
-                
+
                 # Save the crop
                 crop_filename = f"{file_name.split('.')[0]}_{left}_{top}.png"
                 crop.save(os.path.join(output_dir, crop_filename))
 
     print(f"Non-signature crops saved to '{output_dir}'")
-
 
 if __name__ == "__main__":
     create_nonsig_dataset()
