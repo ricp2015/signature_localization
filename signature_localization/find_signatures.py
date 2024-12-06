@@ -54,7 +54,8 @@ def split_image(image, piece_size):
             coords.append((left, top))
             
             # Resize to (734, 177) for the model
-            crop = crop.resize((734, 177)).convert("L")  # Convert to grayscale
+            crop = crop.resize((734, 177)).convert("L")  # Convert to grayscale, provare anche Canny: crop = cv2.Canny(crop_array, threshold1=100, threshold2=200)
+            #crop = cv2.Canny(crop_array, threshold1=100, threshold2=200)
             pieces.append(np.expand_dims(np.array(crop) / 255.0, axis=-1))  # Normalize
 
     return pieces, coords
