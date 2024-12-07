@@ -8,6 +8,7 @@ def download_dataset():
     download_path = kagglehub.dataset_download("victordibia/signverod")
     # Move to target path
     dataPath = "data/raw/signverod_dataset/"
+    os.makedirs(dataPath, exist_ok=True)
     for file_name in os.listdir(download_path):
         full_file_name = os.path.join(download_path, file_name)
         if os.path.isfile(full_file_name) or os.path.isdir(full_file_name):

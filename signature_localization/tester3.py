@@ -9,7 +9,7 @@ import ast
 import cv2
 
 # Directories and file paths
-documents_dir = "data/raw/signverod_dataset"
+documents_dir = "data/raw/signverod_dataset/images"
 model_path = "models/signature_classifier_model.h5"
 annotations_path = "data/raw/fixed_dataset/full_data.csv"
 image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"
@@ -184,10 +184,13 @@ def detect_signature():
     """
     # Select a random document
     doc_files = os.listdir(documents_dir)
-    random_file = random.choice(doc_files)
+
+    #random_file = random.choice(doc_files)
+    random_file = "nist_r0113_01.png"
+
     doc_path = os.path.join(documents_dir, random_file)
     # Load the document
-    document = Image.open(doc_path)
+    document = Image.open(doc_path).convert("RGB")
     img_width, img_height = document.size
 
     # Determine the signature piece size from CSV

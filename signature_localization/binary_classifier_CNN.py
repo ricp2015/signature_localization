@@ -32,7 +32,7 @@ def create_dataset(signature_dir, nonsig_dir, img_size=(734, 177)):
     # Process non-signature images
     nonsig_files = os.listdir(nonsig_dir)
     random.shuffle(nonsig_files)  # Shuffle to ensure randomness
-    for file in nonsig_files[:len(sig_files)*4]:  # Match the number of signature images
+    for file in nonsig_files[:len(sig_files)]:  # Match the number of signature images
         img_path = os.path.join(nonsig_dir, file)
         img = Image.open(img_path).convert('L')  # Convert to grayscale
         img = img.resize(img_size)
@@ -108,6 +108,18 @@ def train_model(model, X_train, y_train, X_val, y_val, epochs=10, batch_size=32)
     return history
 
 def main():
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            # Disable memory growth to pre-allocate GPU memory
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, False)
+                # Allocate a large chunk of GPU memory upfront
+                tf.config.experimental.set_virtual_device_configuration(
+                    gpu,
+                    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=7900)])  # 8GB
+        except RuntimeError as e:
+            print(e)
     # Directories containing the images
     signature_dir = 'data/interim/resized_signatures'
     nonsig_dir = 'data/interim/nonsig_dataset'
@@ -120,7 +132,9 @@ def main():
     model = build_model(input_shape)
 
     # Train the model
+    #for i in range(2):
     history = train_model(model, X_train, y_train, X_test, y_test, epochs=2)
+        #X_train, X_test, y_train, y_test = create_dataset(signature_dir, nonsig_dir)
 
     # Evaluate the model
     test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)

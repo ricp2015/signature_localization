@@ -7,7 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 
 def create_nonsig_dataset():
-    images_dir = "data/raw/signverod_dataset"
+    images_dir = "data/raw/signverod_dataset/images"
     output_dir = "data/interim/nonsig_dataset"
     annotations_path = "data/raw/fixed_dataset/full_data.csv"
     image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"
