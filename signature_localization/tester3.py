@@ -240,7 +240,3 @@ def detect_signature():
     plt.imshow(document)
     plt.axis("off")
     plt.show()
-
-
-# Run the detection
-detect_signature()
