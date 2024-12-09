@@ -176,26 +176,42 @@ def get_signature_size(file_name, width_ratio, height_ratio):
     return scaled_width, scaled_height
 
 
-def detect_signature():
+def detect_signature(documents_dir, global_average_width_ratio, global_average_height_ratio, model):
     """
     Detect signatures in a random document by dividing the document into pieces, 
     predicting the probability of each piece containing a signature, 
     and drawing rectangles around detected regions.
+
+    Parameters:
+    - documents_dir: Directory containing document images.
+    - global_average_width_ratio: Average width ratio of signature pieces.
+    - global_average_height_ratio: Average height ratio of signature pieces.
+    - model: Trained model to predict signature probability.
     """
-    # Select a random document
-    doc_files = os.listdir(documents_dir)
+    # Load the list of test files
+    with open("data/splits/test_files.txt", "r") as f:
+        test_files = f.read().splitlines()
 
-    #random_file = random.choice(doc_files)
-    random_file = "nist_r0113_01.png"
+    # Ensure the test files list is not empty
+    if not test_files:
+        print("No test files found in the annotation file.")
+        return
 
-    doc_path = os.path.join(documents_dir, random_file)
+    # Select a random document from the test files
+    random_doc_file = random.choice(test_files)
+    doc_path = os.path.join(documents_dir, random_doc_file)
+
+    if not os.path.exists(doc_path):
+        print(f"Document {random_doc_file} not found in the directory.")
+        return
+
     # Load the document
     document = Image.open(doc_path).convert("RGB")
     img_width, img_height = document.size
 
     # Determine the signature piece size from CSV
     piece_width, piece_height = get_signature_size(
-        random_file, global_average_width_ratio, global_average_height_ratio
+        random_doc_file, global_average_width_ratio, global_average_height_ratio
     )
 
     # Split the document into pieces based on signature size
@@ -234,9 +250,10 @@ def detect_signature():
     draw.rectangle([left, top, right, bottom], outline="red", width=5)
 
     # Show results
-    print(f"Document: {random_file}")
+    print(f"Document: {random_doc_file}")
     print(f"Highest Probability: {max_prob:.4f} at location {max_coord}")
     plt.figure(figsize=(10, 10))
     plt.imshow(document)
     plt.axis("off")
     plt.show()
+

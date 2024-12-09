@@ -16,8 +16,8 @@ def create_data():
 
 def main():
     #create_data() # (!TODO checker to verify if already created) For now, just comment this line if already done.
-    binary_classifier_CNN.main() #!TODO builds and trains a binary classifier (CNN based). For now, comment this line if already trained.
-    #tester3.detect_signature()
+    #binary_classifier_CNN.main() #!TODO builds and trains a binary classifier (CNN based). For now, comment this line if already trained.
+    tester3.detect_signature()
 
 if __name__ == "__main__":
     main()

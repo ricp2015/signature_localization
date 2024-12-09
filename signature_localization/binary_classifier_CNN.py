@@ -4,13 +4,14 @@ from PIL import Image
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-def create_dataset(signature_dir, nonsig_dir, output_file="data/splits/test_files.txt", img_size=(734, 177)):
+def create_dataset(signature_dir, nonsig_dir, raw_documents_dir, output_file="data/splits/test_files.txt", img_size=(734, 177)):
     """
     Create dataset from signature and non-signature images.
 
     Parameters:
     - signature_dir: Directory containing signature images.
     - nonsig_dir: Directory containing non-signature images.
+    - raw_documents_dir: Directory containing raw document images.
     - output_file: File to save the test filenames.
     - img_size: Tuple specifying the target size for resizing images.
 
@@ -58,10 +59,23 @@ def create_dataset(signature_dir, nonsig_dir, output_file="data/splits/test_file
     X_train, X_test, y_train, y_test, train_files, test_files = train_test_split(
         data, labels, filenames, test_size=0.2, random_state=42)
 
-    # Save test filenames to the specified file
+    # Extract the base document names from test files
+    test_docs = {os.path.splitext(os.path.basename(file).split("_signature_")[0])[0] for file in test_files}
+
+    # Find all documents in the raw documents directory
+    all_docs = {os.path.splitext(file)[0] for file in os.listdir(raw_documents_dir)}
+
+    # Add to valid docs for random file selection from the test set
+    valid_docs = set()
+    for t_file in test_docs:
+        for a_file in all_docs:
+            if a_file in t_file:  # Match base document names
+                valid_docs.add(a_file)
+
+    # Save valid document filenames to the output file
     with open(output_file, "w") as f:
-        for file in test_files:
-            f.write(f"{file}\n")
+        for doc in valid_docs:
+            f.write(f"{doc}.png\n")  # Assuming raw documents are PNG files
 
     return X_train, X_test, y_train, y_test
 
@@ -132,9 +146,10 @@ def main():
     # Directories containing the images
     signature_dir = 'data/interim/resized_signatures'
     nonsig_dir = 'data/interim/nonsig_dataset'
+    documents_dir = "data/raw/signverod_dataset/images"
 
     # Create the dataset
-    X_train, X_test, y_train, y_test = create_dataset(signature_dir, nonsig_dir)
+    X_train, X_test, y_train, y_test = create_dataset(signature_dir, nonsig_dir, documents_dir)
 
     # Build the model
     input_shape = X_train.shape[1:]  # Shape of a single image
