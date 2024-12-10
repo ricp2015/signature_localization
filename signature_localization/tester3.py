@@ -176,7 +176,7 @@ def get_signature_size(file_name, width_ratio, height_ratio):
     return scaled_width, scaled_height
 
 
-def detect_signature(documents_dir, global_average_width_ratio, global_average_height_ratio, model):
+def detect_signature():
     """
     Detect signatures in a random document by dividing the document into pieces, 
     predicting the probability of each piece containing a signature, 
