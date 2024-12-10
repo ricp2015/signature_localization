@@ -6,18 +6,24 @@ import tester3
 import binary_classifier_CNN
 import find_signatures
 
+# Pre-processing methods
+methods = ['canny', 'sobel', 'laplacian', 'gaussian', 'threshold', None]
+
 def create_data():
-    #download_dataset()
-    #crop_signatures()
-    #resize_signatures()
-    #create_nonsig_dataset()
+    download_dataset()
+    crop_signatures()
+    resize_signatures()
+    create_nonsig_dataset()
     return
     
 
-def main():
+def main(method):
+    if method not in methods:
+        raise ValueError(f"Unknown pre-processing method: {method}")
     #create_data() # (!TODO checker to verify if already created) For now, just comment this line if already done.
-    #binary_classifier_CNN.main() #!TODO builds and trains a binary classifier (CNN based). For now, comment this line if already trained.
-    tester3.detect_signature()
+    binary_classifier_CNN.main(method) #!TODO builds and trains a binary classifier (CNN based). For now, comment this line if already trained.
+    tester3.detect_signature(method)
 
 if __name__ == "__main__":
-    main()
+    preprocessing_method = "laplacian"
+    main(preprocessing_method)

@@ -28,8 +28,8 @@ data/raw/signverod_dataset/**
 data/interim/cropped_signatures/**
 data/interim/nonsig_dataset/**
 data/interim/resized_signatures/**
-data/splits/test_files.txt
-models/signature_classifier_model.h5
+models/**
+data/splits/**
 
 
 # Distribution / packaging

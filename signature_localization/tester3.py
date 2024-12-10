@@ -7,26 +7,43 @@ from tensorflow.keras.models import load_model
 import matplotlib.pyplot as plt
 import ast
 import cv2
+import binary_classifier_CNN
 
-# Directories and file paths
-documents_dir = "data/raw/signverod_dataset/images"
-model_path = "models/signature_classifier_model.h5"
-annotations_path = "data/raw/fixed_dataset/full_data.csv"
-image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"
 
-# Load model
-model = load_model(model_path)
+def initialize_test(img_preprocessing):
+    preproc = img_preprocessing
+    if img_preprocessing == None:
+        preproc = "no_pre"
 
-# Load CSV files
-annotations = pd.read_csv(annotations_path)
-image_info = pd.read_csv(image_info_path)
+    # Directories and file paths
+    model_path = "models/" + preproc + "_signature_classifier_model.h5"
+    annotations_path = "data/raw/fixed_dataset/full_data.csv"
+    image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"
 
-# Filtra le firme (category_id == 1)
-signatures = annotations[annotations['category_id'] == 1]
+    # Load model
+    model = load_model(model_path)
 
-# Unisci i due DataFrame sui rispettivi ID immagine
-merged_data = signatures.merge(image_info, left_on='image_id', right_on='id', suffixes=('_annotation', '_image'))
+    # Load CSV files
+    annotations = pd.read_csv(annotations_path)
+    image_info = pd.read_csv(image_info_path)
 
+    # Filtra le firme (category_id == 1)
+    signatures = annotations[annotations['category_id'] == 1]
+
+    # Unisci i due DataFrame sui rispettivi ID immagine
+    merged_data = signatures.merge(image_info, left_on='image_id', right_on='id', suffixes=('_annotation', '_image'))
+    
+    # Compute the average width and height ratios for each document
+    width_ratios, height_ratios = calculate_average_ratios(merged_data)
+
+    # Compute the global average ratios across all documents
+    global_average_width_ratio = sum(width_ratios) / len(width_ratios)
+    global_average_height_ratio = sum(height_ratios) / len(height_ratios)
+
+    # Print the global average ratios
+    print(f"Global average width ratio: {global_average_width_ratio:.6f}")
+    print(f"Global average height ratio: {global_average_height_ratio:.6f}")
+    return image_info, global_average_width_ratio, global_average_height_ratio, model
 
 def calculate_average_ratios(df):
     """
@@ -98,18 +115,6 @@ def calculate_bbox_height_ratio(bbox, img_height):
     return bbox_height / img_height  # Compute the normalized ratio
 
 
-# Compute the average width and height ratios for each document
-width_ratios, height_ratios = calculate_average_ratios(merged_data)
-
-# Compute the global average ratios across all documents
-global_average_width_ratio = sum(width_ratios) / len(width_ratios)
-global_average_height_ratio = sum(height_ratios) / len(height_ratios)
-
-# Print the global average ratios
-print(f"Global average width ratio: {global_average_width_ratio:.6f}")
-print(f"Global average height ratio: {global_average_height_ratio:.6f}")
-
-
 def split_image(image, piece_size):
     """
     Split the image into non-overlapping pieces of the given size and apply edge detection.
@@ -146,7 +151,7 @@ def split_image(image, piece_size):
     return pieces, coords
 
 
-def get_signature_size(file_name, width_ratio, height_ratio):
+def get_signature_size(file_name, width_ratio, height_ratio, image_info):
     """
     Get the maximum size of the signature bounding boxes for the given document,
     scaled by the global width and height ratios.
@@ -176,7 +181,7 @@ def get_signature_size(file_name, width_ratio, height_ratio):
     return scaled_width, scaled_height
 
 
-def detect_signature():
+def detect_signature(img_preprocessing = None):
     """
     Detect signatures in a random document by dividing the document into pieces, 
     predicting the probability of each piece containing a signature, 
@@ -188,8 +193,16 @@ def detect_signature():
     - global_average_height_ratio: Average height ratio of signature pieces.
     - model: Trained model to predict signature probability.
     """
+    documents_dir = "data/raw/signverod_dataset/images"
+
+    image_info, global_average_width_ratio, global_average_height_ratio, model = initialize_test(img_preprocessing)
+
+    preproc = img_preprocessing
+    if img_preprocessing == None:
+        preproc = "no_pre"
+
     # Load the list of test files
-    with open("data/splits/test_files.txt", "r") as f:
+    with open("data/splits/" + preproc + "_test_files.txt", "r") as f:
         test_files = f.read().splitlines()
 
     # Ensure the test files list is not empty
@@ -200,22 +213,26 @@ def detect_signature():
     # Select a random document from the test files
     random_doc_file = random.choice(test_files)
     doc_path = os.path.join(documents_dir, random_doc_file)
-
     if not os.path.exists(doc_path):
         print(f"Document {random_doc_file} not found in the directory.")
         return
 
-    # Load the document
+    # Load the document as an RGB image
     document = Image.open(doc_path).convert("RGB")
-    img_width, img_height = document.size
 
     # Determine the signature piece size from CSV
     piece_width, piece_height = get_signature_size(
-        random_doc_file, global_average_width_ratio, global_average_height_ratio
+        random_doc_file, global_average_width_ratio, global_average_height_ratio, image_info
     )
 
+    # Convert the PIL Image to a NumPy array
+    document_array = np.array(document)
+
+    # Preprocess the NumPy array image
+    img = binary_classifier_CNN.preprocess_image(document_array, img_preprocessing)
+    restored_image = Image.fromarray(img.squeeze(), mode="RGB")
     # Split the document into pieces based on signature size
-    pieces, coords = split_image(document, (piece_width, piece_height))
+    pieces, coords = split_image(restored_image, (piece_width, piece_height))
 
     # Predict signature probability for each piece
     probabilities = [model.predict(np.expand_dims(piece, axis=0))[0][0] for piece in pieces]
@@ -256,4 +273,3 @@ def detect_signature():
     plt.imshow(document)
     plt.axis("off")
     plt.show()
-

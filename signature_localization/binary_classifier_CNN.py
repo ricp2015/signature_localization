@@ -2,11 +2,50 @@ import os
 import random
 from PIL import Image
 import numpy as np
+import cv2
 from sklearn.model_selection import train_test_split
 
-def create_dataset(signature_dir, nonsig_dir, raw_documents_dir, output_file="data/splits/test_files.txt", img_size=(734, 177)):
+def preprocess_image(image, method=None):
     """
-    Create dataset from signature and non-signature images.
+    Apply a pre-processing method to the image.
+
+    Parameters:
+    - image: Grayscale image as a NumPy array.
+    - method: Pre-processing method. Options: 'canny', 'sobel', 'laplacian', 'gaussian', 'threshold', None.
+
+    Returns:
+    - Pre-processed image as a NumPy array.
+    """
+    if method is None:
+        return image  # No pre-processing
+
+    if method == 'canny':
+        return cv2.Canny(image, 100, 200)  # Simple Canny Edge Detection
+
+    if method == 'sobel':
+        sobel_x = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
+        sobel_y = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
+        return cv2.magnitude(sobel_x, sobel_y).astype(np.uint8)
+
+    if method == 'laplacian':
+        blurred = cv2.GaussianBlur(image, (3, 3), 0)
+        return cv2.Laplacian(blurred, cv2.CV_64F).astype(np.uint8)
+
+    if method == 'gaussian':
+        return cv2.GaussianBlur(image, (5, 5), 0)
+
+    if method == 'threshold':
+        return cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                     cv2.THRESH_BINARY, 11, 2)
+
+    raise ValueError(f"Unknown pre-processing method: {method}")
+
+
+def create_dataset(signature_dir, nonsig_dir, raw_documents_dir,
+                   output_file="data/splits/test_files.txt", img_size=(734, 177),
+                   preprocessing=None):
+    """
+    Create dataset from signature and non-signature images with optional pre-processing.
 
     Parameters:
     - signature_dir: Directory containing signature images.
@@ -14,6 +53,7 @@ def create_dataset(signature_dir, nonsig_dir, raw_documents_dir, output_file="da
     - raw_documents_dir: Directory containing raw document images.
     - output_file: File to save the test filenames.
     - img_size: Tuple specifying the target size for resizing images.
+    - preprocessing: Pre-processing method to apply (e.g., 'canny', 'sobel').
 
     Returns:
     - X_train, X_test, y_train, y_test: Training and testing datasets with labels.
@@ -22,28 +62,27 @@ def create_dataset(signature_dir, nonsig_dir, raw_documents_dir, output_file="da
     labels = []
     filenames = []
 
+    def process_images(file_list, label, directory):
+        for file in file_list:
+            img_path = os.path.join(directory, file)
+            img = Image.open(img_path).convert('L')  # Convert to grayscale
+            img = img.resize(img_size)
+            img_array = np.array(img)
+
+            # Apply pre-processing if specified
+            img = preprocess_image(img_array, method=preprocessing)
+            data.append(img)
+            labels.append(label)
+            filenames.append(img_path)
+
     # Process signature images
     sig_files = os.listdir(signature_dir)
-    for file in sig_files:
-        img_path = os.path.join(signature_dir, file)
-        img = Image.open(img_path).convert('L')  # Convert to grayscale
-        img = img.resize(img_size)
-        img_array = np.array(img)
-        data.append(img_array)
-        labels.append(1)  # Label for signatures
-        filenames.append(img_path)
+    process_images(sig_files, label=1, directory=signature_dir)
 
     # Process non-signature images
     nonsig_files = os.listdir(nonsig_dir)
     random.shuffle(nonsig_files)  # Shuffle to ensure randomness
-    for file in nonsig_files[:len(sig_files)]:  # Match the number of signature images
-        img_path = os.path.join(nonsig_dir, file)
-        img = Image.open(img_path).convert('L')  # Convert to grayscale
-        img = img.resize(img_size)
-        img_array = np.array(img)
-        data.append(img_array)
-        labels.append(0)  # Label for non-signatures
-        filenames.append(img_path)
+    process_images(nonsig_files[:len(sig_files)], label=0, directory=nonsig_dir)
 
     # Convert lists to numpy arrays
     data = np.array(data)
@@ -130,39 +169,41 @@ def train_model(model, X_train, y_train, X_val, y_val, epochs=10, batch_size=32)
                         validation_data=(X_val, y_val))
     return history
 
-def main():
+def main(img_preprocessing = None):
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
         try:
-            # Disable memory growth to pre-allocate GPU memory
             for gpu in gpus:
                 tf.config.experimental.set_memory_growth(gpu, False)
-                # Allocate a large chunk of GPU memory upfront
                 tf.config.experimental.set_virtual_device_configuration(
-                    gpu,
-                    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=7900)])  # 8GB
+                    gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=7900)])  # 8GB
         except RuntimeError as e:
             print(e)
+
     # Directories containing the images
     signature_dir = 'data/interim/resized_signatures'
     nonsig_dir = 'data/interim/nonsig_dataset'
     documents_dir = "data/raw/signverod_dataset/images"
+    preproc = img_preprocessing
+    if img_preprocessing == None:
+        preproc = "no_pre"
 
-    # Create the dataset
-    X_train, X_test, y_train, y_test = create_dataset(signature_dir, nonsig_dir, documents_dir)
+    # Create the dataset with optional pre-processing
+    X_train, X_test, y_train, y_test = create_dataset(
+        signature_dir, nonsig_dir, documents_dir, output_file = "data/splits/"+ preproc +"_test_files.txt",
+        preprocessing=img_preprocessing
+    )
 
     # Build the model
-    input_shape = X_train.shape[1:]  # Shape of a single image
+    input_shape = X_train.shape[1:]
     model = build_model(input_shape)
 
     # Train the model
-    #for i in range(2):
     history = train_model(model, X_train, y_train, X_test, y_test, epochs=2)
-        #X_train, X_test, y_train, y_test = create_dataset(signature_dir, nonsig_dir)
 
     # Evaluate the model
     test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)
     print(f'\nTest accuracy: {test_acc}')
 
     # Save the model
-    model.save('models/signature_classifier_model.h5')
+    model.save('models/'+preproc+'_signature_classifier_model.h5')
