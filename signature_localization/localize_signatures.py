@@ -178,36 +178,27 @@ def get_signature_size(file_name, width_ratio, height_ratio, image_info):
     return scaled_width, scaled_height
 
 
-def detect_signature(img_preprocessing = None):
+def detect_signature(img_preprocessing=None):
     """
-    Detect signatures in a random document by dividing the document into pieces, 
-    predicting the probability of each piece containing a signature, 
-    and drawing rectangles around detected regions.
-
-    Parameters:
-    - documents_dir: Directory containing document images.
-    - global_average_width_ratio: Average width ratio of signature pieces.
-    - global_average_height_ratio: Average height ratio of signature pieces.
-    - model: Trained model to predict signature probability.
+    Detect signatures in a random document iteratively by masking detected regions,
+    and highlight only one signature per iteration based on a probability threshold.
     """
     documents_dir = "data/raw/signverod_dataset/images"
 
+    # Initialize parameters and load models/data
     image_info, global_average_width_ratio, global_average_height_ratio, model = initialize_test(img_preprocessing)
 
-    preproc = img_preprocessing
-    if img_preprocessing == None:
-        preproc = "no_pre"
+    preproc = img_preprocessing or "no_pre"
 
     # Load the list of test files
-    with open("data/splits/" + preproc + "_test_files.txt", "r") as f:
+    with open(f"data/splits/{preproc}_test_files.txt", "r") as f:
         test_files = f.read().splitlines()
 
-    # Ensure the test files list is not empty
     if not test_files:
         print("No test files found in the annotation file.")
         return
 
-    # Select a random document from the test files
+    # Select a random document
     random_doc_file = random.choice(test_files)
     doc_path = os.path.join(documents_dir, random_doc_file)
     if not os.path.exists(doc_path):
@@ -216,51 +207,56 @@ def detect_signature(img_preprocessing = None):
 
     # Load the document as an RGB image
     document = Image.open(doc_path).convert("RGB")
+    original_document = document.copy()  # Keep a copy of the original document
 
-    # Determine the signature piece size from CSV
+    # Determine the signature piece size
     piece_width, piece_height = get_signature_size(
         random_doc_file, global_average_width_ratio, global_average_height_ratio, image_info
     )
 
-    # Split the document into pieces based on signature size
-    pieces, coords = split_image(document, (piece_width, piece_height), img_preprocessing)
+    # Prepare variables for iterative detection
+    max_iterations = 10  # Stop after a certain number of signatures
+    min_probability_threshold = 0.9
+    highlighted_boxes = []
 
-    # Predict signature probability for each piece
-    probabilities = [model.predict(np.expand_dims(piece, axis=0))[0][0] for piece in pieces]
+    # Create a working version of the document as a NumPy array
+    document_array = np.array(document)
 
-    # Find the piece with the highest probability
-    max_prob = max(probabilities)
-    threshold = max_prob - 0.1  # Define the threshold for drawing rectangles
+    for iteration in range(max_iterations):
+        # Split the document into pieces
+        pieces, coords = split_image(Image.fromarray(document_array), (piece_width, piece_height), img_preprocessing)
 
-    # Define the percentage for top results (e.g., 2 for top 2%)
-    top_percentage = 2  # Change this value to use a different percentage
+        # Predict signature probability for each piece
+        probabilities = [model.predict(np.expand_dims(piece, axis=0))[0][0] for piece in pieces]
 
-    # Sort the probabilities in descending order and get the top N% indices
-    sorted_probs = sorted(probabilities, reverse=True)  # Sort probabilities in descending order
-    top_n_percent_index = int(len(sorted_probs) * (top_percentage / 100))  # Get the index for top N%
+        # Find the piece with the highest probability
+        max_prob = max(probabilities)
+        if max_prob < min_probability_threshold:
+            print(f"No signatures detected with probability >= {min_probability_threshold:.2f}")
+            break
 
-    # Select the top N% probabilities
-    top_probs = sorted_probs[:top_n_percent_index]
+        # Highlight the piece with the maximum probability
+        max_index = probabilities.index(max_prob)
+        max_coord = coords[max_index]
+        left, top = max_coord
+        right = left + piece_width
+        bottom = top + piece_height
+        highlighted_boxes.append((left, top, right, bottom))
 
-    # Highlight only the pieces with top N% highest probabilities
-    draw = ImageDraw.Draw(document)
-    for prob, (left, top) in zip(probabilities, coords):
-        if prob in top_probs:
-            right = left + piece_width
-            bottom = top + piece_height
-            draw.rectangle([left, top, right, bottom], outline="blue", width=5)
+        # Mask the detected region (set to black)
+        document_array[top:bottom, left:right] = 0  # Black out the detected region
 
-    # Highlight the piece with the maximum probability
-    max_index = probabilities.index(max_prob)
-    max_coord = coords[max_index]
-    left, top = max_coord
-    right, bottom = left + piece_width, top + piece_height
-    draw.rectangle([left, top, right, bottom], outline="red", width=5)
+        print(f"Iteration {iteration + 1}: Detected signature with probability {max_prob:.4f}")
+        print(f"Location: {max_coord}")
 
-    # Show results
-    print(f"Document: {random_doc_file}")
-    print(f"Highest Probability: {max_prob:.4f} at location {max_coord}")
+    # Draw all highlighted boxes on the original document
+    draw = ImageDraw.Draw(original_document)
+    for box in highlighted_boxes:
+        draw.rectangle(box, outline="red", width=5)
+
+    # Show the results
     plt.figure(figsize=(10, 10))
-    plt.imshow(document)
+    plt.imshow(original_document)
     plt.axis("off")
+    plt.title("Detected Signatures")
     plt.show()

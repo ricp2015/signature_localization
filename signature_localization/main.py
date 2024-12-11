@@ -2,7 +2,7 @@ from dataset_downloader import download_dataset
 from crop_signatures import crop_signatures
 from resize_signatures import resize_signatures
 from create_nonsig_dataset import create_nonsig_dataset
-import signature_localization.localize_signatures as localize_signatures
+import localize_signatures
 import binary_classifier_CNN
 import find_signatures
 

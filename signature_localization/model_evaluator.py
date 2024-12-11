@@ -1,5 +1,5 @@
 import csv
-import signature_localization.localize_signatures as localize_signatures
+import localize_signatures
 import os
 
 
