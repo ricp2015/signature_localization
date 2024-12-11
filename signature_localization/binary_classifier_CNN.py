@@ -120,6 +120,32 @@ def create_dataset(signature_dir, nonsig_dir, raw_documents_dir,
 
 import tensorflow as tf
 from keras import layers, models
+import matplotlib.pyplot as plt
+
+def plot_training_history(history):
+    plt.figure(figsize=(12, 5))
+
+    # Plot accuracy
+    plt.subplot(1, 2, 1)
+    plt.plot(history.history['accuracy'], label='Train Accuracy')
+    plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+    plt.title('Accuracy over Epochs')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+
+    # Plot loss
+    plt.subplot(1, 2, 2)
+    plt.plot(history.history['loss'], label='Train Loss')
+    plt.plot(history.history['val_loss'], label='Validation Loss')
+    plt.title('Loss over Epochs')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
 
 def build_model(input_shape):
     """
@@ -169,7 +195,7 @@ def train_model(model, X_train, y_train, X_val, y_val, epochs=10, batch_size=32)
                         validation_data=(X_val, y_val))
     return history
 
-def main(img_preprocessing = None):
+def main(img_preprocessing = None, plot = True):
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
         try:
@@ -200,6 +226,9 @@ def main(img_preprocessing = None):
 
     # Train the model
     history = train_model(model, X_train, y_train, X_test, y_test, epochs=2)
+
+    if plot:
+        plot_training_history(history)
 
     # Evaluate the model
     test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)

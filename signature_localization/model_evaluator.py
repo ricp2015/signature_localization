@@ -84,7 +84,7 @@ evaluate_all_documents(
     test_dir="data/raw/signverod_dataset/images",
     annotations_path="data/raw/fixed_dataset/full_data.csv",
     image_info_path="data/raw/fixed_dataset/updated_image_ids.csv",
-    output_csv="output/evaluation_results.csv",
-    img_preprocessing=None,
-    max_files=100
+    output_csv="reports/evaluation_results.csv",
+    img_preprocessing="canny",
+    max_files=3
 )
