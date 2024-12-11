@@ -25,5 +25,5 @@ def main(method):
     localize_signatures.detect_signature(method)
 
 if __name__ == "__main__":
-    preprocessing_method = None
+    preprocessing_method = "canny"
     main(preprocessing_method)

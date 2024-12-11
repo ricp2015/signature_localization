@@ -193,10 +193,18 @@ def calculate_iou(box1, box2):
     return intersection_area / union_area
 
 
-def detect_signature(img_preprocessing=None):
+def detect_signature(img_preprocessing=None, doc_path=None, plot_results=True):
     """
-    Detect signatures in a random document iteratively by masking detected regions,
+    Detect signatures in a specified document or a random document iteratively by masking detected regions,
     and highlight only one signature per iteration based on a probability threshold.
+
+    Parameters:
+    - img_preprocessing: Preprocessing method to apply to the images (optional).
+    - doc_path: Path to the specific document to process (optional). If not provided, a random document is selected.
+    - plot_results: Boolean indicating whether to plot the detected regions on the document (optional, default: True).
+
+    Returns:
+    - detected_regions: List of detected regions as bounding boxes in the format [x_min, y_min, width, height].
     """
     documents_dir = "data/raw/signverod_dataset/images"
 
@@ -211,14 +219,19 @@ def detect_signature(img_preprocessing=None):
 
     if not test_files:
         print("No test files found in the annotation file.")
-        return
+        return []
 
-    # Select a random document
-    random_doc_file = random.choice(test_files)
-    doc_path = os.path.join(documents_dir, random_doc_file)
+    # Determine the document path
+    if doc_path is None:
+        # Select a random document
+        random_doc_file = random.choice(test_files)
+        doc_path = os.path.join(documents_dir, random_doc_file)
+    else:
+        random_doc_file = os.path.basename(doc_path)
+
     if not os.path.exists(doc_path):
-        print(f"Document {random_doc_file} not found in the directory.")
-        return
+        print(f"Document {doc_path} not found in the directory.")
+        return []
 
     # Load the document as an RGB image
     document = Image.open(doc_path).convert("RGB")
@@ -295,14 +308,22 @@ def detect_signature(img_preprocessing=None):
         print(f"Iteration {iteration + 1}: Detected signature with probability {max_prob:.4f}")
         print(f"Location: {max_coord}")
 
-    # Draw all highlighted boxes on the original document
-    draw = ImageDraw.Draw(original_document)
-    for box in highlighted_boxes:
-        draw.rectangle(box, outline="red", width=5)
+    # Convert highlighted boxes to the required format: [x_min, y_min, width, height]
+    detected_regions = [
+        [box[0], box[1], box[2] - box[0], box[3] - box[1]] for box in highlighted_boxes
+    ]
 
-    # Show the results
-    plt.figure(figsize=(10, 10))
-    plt.imshow(original_document)
-    plt.axis("off")
-    plt.title("Detected Signatures")
-    plt.show()
+    # Optionally plot the results
+    if plot_results:
+        draw = ImageDraw.Draw(original_document)
+        for box in highlighted_boxes:
+            draw.rectangle(box, outline="red", width=5)
+
+        # Show the results
+        plt.figure(figsize=(10, 10))
+        plt.imshow(original_document)
+        plt.axis("off")
+        plt.title("Detected Signatures")
+        plt.show()
+
+    return detected_regions
