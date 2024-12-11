@@ -114,18 +114,38 @@ def calculate_bbox_height_ratio(bbox, img_height):
     bbox_height = bbox[3] * img_height  # Scale the normalized height to pixel units
     return bbox_height / img_height  # Compute the normalized ratio
 
-def process_rectangle(box, image, img_preprocessing, left, top):
-    crop = image.crop(box)
-    crop = crop.convert("L")  # Grayscale
-    # Convert the PIL Image to a NumPy array
-    crop_array = np.array(crop)
-    # Preprocess the NumPy array image
-    img = binary_classifier_CNN.preprocess_image(crop_array, img_preprocessing)
-    edges_resized = cv2.resize(img, (734, 177))
-    piece = np.expand_dims(edges_resized / 255.0, axis=-1) # Normalize
-    coord = (left, top)
-    return piece, coord
 
+def split_image(image, piece_size, img_preprocessing):
+    """
+    Split the image into non-overlapping pieces of the given size and apply edge detection.
+
+    Parameters:
+    - image: PIL.Image object.
+    - piece_size: Tuple (width, height) specifying the size of each piece.
+
+    Returns:
+    - pieces: List of image pieces (as numpy arrays).
+    - coords: List of top-left coordinates of each piece in the original image.
+    """
+    pieces = []
+    coords = []
+    img_width, img_height = image.size
+    piece_width, piece_height = piece_size
+
+    for top in range(0, img_height, piece_height // 4):
+        for left in range(0, img_width, piece_width // 4):
+            box = (left, top, left + piece_width, top + piece_height)
+            crop = image.crop(box)
+            crop = crop.convert("L")  # Grayscale
+            # Convert the PIL Image to a NumPy array
+            crop_array = np.array(crop)
+            # Preprocess the NumPy array image
+            img = binary_classifier_CNN.preprocess_image(crop_array, img_preprocessing)
+            edges_resized = cv2.resize(img, (734, 177))
+            pieces.append(np.expand_dims(edges_resized / 255.0, axis=-1))  # Normalize
+            coords.append((left, top))
+
+    return pieces, coords
 
 
 def get_signature_size(file_name, width_ratio, height_ratio, image_info):
@@ -156,41 +176,6 @@ def get_signature_size(file_name, width_ratio, height_ratio, image_info):
     print(f"Document dimensions: {img_width}x{img_height}")
     print(f"Scaled signature size: {scaled_width}x{scaled_height}")
     return scaled_width, scaled_height
-
-
-def calculate_iou(box1, box2):
-    """
-    Calcola l'Intersection over Union (IoU) tra due rettangoli.
-
-    Parameters:
-    - box1: (left, top, right, bottom) del primo rettangolo
-    - box2: (left, top, right, bottom) del secondo rettangolo
-
-    Returns:
-    - IoU: il rapporto di sovrapposizione tra i due rettangoli
-    """
-    # Calcolare le coordinate di intersezione
-    x_left = max(box1[0], box2[0])
-    y_top = max(box1[1], box2[1])
-    x_right = min(box1[2], box2[2])
-    y_bottom = min(box1[3], box2[3])
-
-    # Se non c'è sovrapposizione
-    if x_right <= x_left or y_bottom <= y_top:
-        return 0.0
-
-    # Area di intersezione
-    intersection_area = (x_right - x_left) * (y_bottom - y_top)
-
-    # Aree dei due rettangoli
-    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
-    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
-
-    # Area di unione
-    union_area = box1_area + box2_area - intersection_area
-
-    # IoU
-    return intersection_area / union_area
 
 
 def detect_signature(img_preprocessing=None):
@@ -236,61 +221,30 @@ def detect_signature(img_preprocessing=None):
 
     # Create a working version of the document as a NumPy array
     document_array = np.array(document)
-    img_width, img_height = document.size
-
-    # Generate initial pieces and coordinates
-    pieces = []
-    coords = []
-    for top in range(0, img_height, piece_height // 4):
-        for left in range(0, img_width, piece_width // 4):
-            box = (left, top, left + piece_width, top + piece_height)
-            if box[2] > img_width or box[3] > img_height:  # Skip boxes that exceed image boundaries
-                continue
-            piece, coord = process_rectangle(box, document, img_preprocessing, left, top)
-            pieces.append(piece)
-            coords.append(coord)
-
-    candidate_coords = coords
 
     for iteration in range(max_iterations):
-        if not candidate_coords:
-            print("No more candidate regions to evaluate.")
-            break
+        # Split the document into pieces
+        pieces, coords = split_image(Image.fromarray(document_array), (piece_width, piece_height), img_preprocessing)
 
         # Predict signature probability for each piece
         probabilities = [model.predict(np.expand_dims(piece, axis=0))[0][0] for piece in pieces]
 
-        # Filter pieces with probability >= threshold
-        valid_indices = [i for i, prob in enumerate(probabilities) if prob >= min_probability_threshold]
-        if not valid_indices:
+        # Find the piece with the highest probability
+        max_prob = max(probabilities)
+        if max_prob < min_probability_threshold:
             print(f"No signatures detected with probability >= {min_probability_threshold:.2f}")
             break
 
-        # Find the piece with the highest probability
-        max_index = max(valid_indices, key=lambda i: probabilities[i])
-        max_prob = probabilities[max_index]
-        max_coord = candidate_coords[max_index]
+        # Highlight the piece with the maximum probability
+        max_index = probabilities.index(max_prob)
+        max_coord = coords[max_index]
         left, top = max_coord
         right = left + piece_width
         bottom = top + piece_height
-        new_box = (left, top, right, bottom)
-
-        # Non-Maximum Suppression: elimina rettangoli che si sovrappongono troppo
-        keep_boxes = []
-        for box in highlighted_boxes:
-            if calculate_iou(new_box, box) < 0.3:  # Sovrapposizione minore del 30%
-                keep_boxes.append(box)
-        keep_boxes.append(new_box)
-
-        # Aggiorna la lista dei rettangoli evidenziati
-        highlighted_boxes = keep_boxes
+        highlighted_boxes.append((left, top, right, bottom))
 
         # Mask the detected region (set to black)
         document_array[top:bottom, left:right] = 0  # Black out the detected region
-
-        # Update candidate coordinates and pieces for the next iteration
-        candidate_coords = [candidate_coords[i] for i in valid_indices if i != max_index]
-        pieces = [pieces[i] for i in valid_indices if i != max_index]
 
         print(f"Iteration {iteration + 1}: Detected signature with probability {max_prob:.4f}")
         print(f"Location: {max_coord}")

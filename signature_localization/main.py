@@ -25,5 +25,5 @@ def main(method):
     localize_signatures.detect_signature(method)
 
 if __name__ == "__main__":
-    preprocessing_method = "sobel"
+    preprocessing_method = None
     main(preprocessing_method)
