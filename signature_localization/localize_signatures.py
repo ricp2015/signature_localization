@@ -115,7 +115,7 @@ def calculate_bbox_height_ratio(bbox, img_height):
     return bbox_height / img_height  # Compute the normalized ratio
 
 
-def split_image(image, piece_size):
+def split_image(image, piece_size, img_preprocessing):
     """
     Split the image into non-overlapping pieces of the given size and apply edge detection.
 
@@ -136,15 +136,12 @@ def split_image(image, piece_size):
         for left in range(0, img_width, piece_width // 4):
             box = (left, top, left + piece_width, top + piece_height)
             crop = image.crop(box)
-            
-            # Convert to grayscale and apply edge detection
             crop = crop.convert("L")  # Grayscale
+            # Convert the PIL Image to a NumPy array
             crop_array = np.array(crop)
-            #edges = cv2.Canny(crop_array, threshold1=100, threshold2=200)  # Edge detection
-            
-            # Resize to (734, 177) for the model
-            #edges_resized = cv2.resize(edges, (734, 177))
-            edges_resized = cv2.resize(crop_array, (734, 177))
+            # Preprocess the NumPy array image
+            img = binary_classifier_CNN.preprocess_image(crop_array, img_preprocessing)
+            edges_resized = cv2.resize(img, (734, 177))
             pieces.append(np.expand_dims(edges_resized / 255.0, axis=-1))  # Normalize
             coords.append((left, top))
 
@@ -225,14 +222,8 @@ def detect_signature(img_preprocessing = None):
         random_doc_file, global_average_width_ratio, global_average_height_ratio, image_info
     )
 
-    # Convert the PIL Image to a NumPy array
-    document_array = np.array(document)
-
-    # Preprocess the NumPy array image
-    img = binary_classifier_CNN.preprocess_image(document_array, img_preprocessing)
-    restored_image = Image.fromarray(img.squeeze(), mode="RGB")
     # Split the document into pieces based on signature size
-    pieces, coords = split_image(restored_image, (piece_width, piece_height))
+    pieces, coords = split_image(document, (piece_width, piece_height), img_preprocessing)
 
     # Predict signature probability for each piece
     probabilities = [model.predict(np.expand_dims(piece, axis=0))[0][0] for piece in pieces]

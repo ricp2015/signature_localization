@@ -1,5 +1,5 @@
 import csv
-import tester3
+import signature_localization.localize_signatures as localize_signatures
 import os
 
 
@@ -30,7 +30,7 @@ def evaluate_all_documents(test_dir, output_csv, img_preprocessing=None):
             continue
 
         # Call detect_signature for this document
-        detected_regions = tester3.detect_signature(img_preprocessing=img_preprocessing, doc_path=doc_path)
+        detected_regions = localize_signatures.detect_signature(img_preprocessing=img_preprocessing, doc_path=doc_path)
 
         # Calculate IoU (placeholder for actual IoU calculation function)
         iou = calculate_iou(detected_regions, test_file)  # Define calculate_iou function later
