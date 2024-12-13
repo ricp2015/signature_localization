@@ -99,7 +99,7 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
                     matched_gt.add(signature_id)
 
             # Append IoU results for the CSV
-            iou_results.append([test_file, signature_id, max_iou, img_preprocessing])
+            iou_results.append([test_file, signature_id, max_iou, preproc])
             ious.append(max_iou)
 
         # Count true positives
@@ -125,7 +125,7 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
     with open(output_csv, "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(["Precision", "Recall", "Accuracy", "F1-Score", "method"])
-        writer.writerow([precision, recall, accuracy, f1_score, img_preprocessing])
+        writer.writerow([precision, recall, accuracy, f1_score, preproc])
 
     # Write IoU results to CSV
     with open(iou_csv, "w", newline="") as csvfile:
