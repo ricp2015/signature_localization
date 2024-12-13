@@ -41,7 +41,7 @@ def preprocess_image(image, method=None):
     raise ValueError(f"Unknown pre-processing method: {method}")
 
 
-def create_dataset(signature_dir, nonsig_dir, raw_documents_dir,
+def create_dataset(signature_dir, nonsig_dir, raw_documents_dir, 
                    output_file="data/splits/test_files.txt", img_size=(734, 177),
                    preprocessing=None):
     """
@@ -104,6 +104,9 @@ def create_dataset(signature_dir, nonsig_dir, raw_documents_dir,
     # Find all documents in the raw documents directory
     all_docs = {os.path.splitext(file)[0] for file in os.listdir(raw_documents_dir)}
 
+    # Map base document names to their extensions in the raw documents directory
+    doc_extensions = {os.path.splitext(file)[0]: os.path.splitext(file)[1] for file in os.listdir(raw_documents_dir)}
+
     # Add to valid docs for random file selection from the test set
     valid_docs = set()
     for t_file in test_docs:
@@ -114,9 +117,11 @@ def create_dataset(signature_dir, nonsig_dir, raw_documents_dir,
     # Save valid document filenames to the output file
     with open(output_file, "w") as f:
         for doc in valid_docs:
-            f.write(f"{doc}.png\n")  # Assuming raw documents are PNG files
+            extension = doc_extensions.get(doc, "")  # Get the extension or default to empty
+            f.write(f"{doc}{extension}\n")
 
     return X_train, X_test, y_train, y_test
+
 
 import tensorflow as tf
 from keras import layers, models

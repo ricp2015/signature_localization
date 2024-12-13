@@ -308,11 +308,6 @@ def detect_signature(img_preprocessing=None, doc_path=None, plot_results=True):
         print(f"Iteration {iteration + 1}: Detected signature with probability {max_prob:.4f}")
         print(f"Location: {max_coord}")
 
-    # Convert highlighted boxes to the required format: [x_min, y_min, width, height]
-    detected_regions = [
-        [box[0], box[1], box[2] - box[0], box[3] - box[1]] for box in highlighted_boxes
-    ]
-
     # Optionally plot the results
     if plot_results:
         draw = ImageDraw.Draw(original_document)
@@ -326,4 +321,4 @@ def detect_signature(img_preprocessing=None, doc_path=None, plot_results=True):
         plt.title("Detected Signatures")
         plt.show()
 
-    return detected_regions
+    return highlighted_boxes

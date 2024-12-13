@@ -21,8 +21,8 @@ def main(method):
     if method not in methods:
         raise ValueError(f"Unknown pre-processing method: {method}")
     #create_data() # (!TODO checker to verify if already created) For now, just comment this line if already done.
-    #binary_classifier_CNN.main(method) #!TODO builds and trains a binary classifier (CNN based). For now, comment this line if already trained.
-    localize_signatures.detect_signature(method)
+    binary_classifier_CNN.main(method) #!TODO builds and trains a binary classifier (CNN based). For now, comment this line if already trained.
+    #localize_signatures.detect_signature(method)
 
 if __name__ == "__main__":
     preprocessing_method = "canny"
