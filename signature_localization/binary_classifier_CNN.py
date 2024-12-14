@@ -41,7 +41,7 @@ def preprocess_image(image, method=None):
     raise ValueError(f"Unknown pre-processing method: {method}")
 
 
-def create_dataset(signature_dir, nonsig_dir, raw_documents_dir, 
+def create_dataset(signature_dir, nonsig_dir, raw_documents_dir,
                    output_file="data/splits/test_files.txt", img_size=(734, 177),
                    preprocessing=None):
     """
@@ -104,9 +104,6 @@ def create_dataset(signature_dir, nonsig_dir, raw_documents_dir,
     # Find all documents in the raw documents directory
     all_docs = {os.path.splitext(file)[0] for file in os.listdir(raw_documents_dir)}
 
-    # Map base document names to their extensions in the raw documents directory
-    doc_extensions = {os.path.splitext(file)[0]: os.path.splitext(file)[1] for file in os.listdir(raw_documents_dir)}
-
     # Add to valid docs for random file selection from the test set
     valid_docs = set()
     for t_file in test_docs:
@@ -117,40 +114,12 @@ def create_dataset(signature_dir, nonsig_dir, raw_documents_dir,
     # Save valid document filenames to the output file
     with open(output_file, "w") as f:
         for doc in valid_docs:
-            extension = doc_extensions.get(doc, "")  # Get the extension or default to empty
-            f.write(f"{doc}{extension}\n")
+            f.write(f"{doc}.png\n")  # Assuming raw documents are PNG files
 
     return X_train, X_test, y_train, y_test
 
-
 import tensorflow as tf
 from keras import layers, models
-import matplotlib.pyplot as plt
-
-def plot_training_history(history):
-    plt.figure(figsize=(12, 5))
-
-    # Plot accuracy
-    plt.subplot(1, 2, 1)
-    plt.plot(history.history['accuracy'], label='Train Accuracy')
-    plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
-    plt.title('Accuracy over Epochs')
-    plt.xlabel('Epochs')
-    plt.ylabel('Accuracy')
-    plt.legend()
-
-    # Plot loss
-    plt.subplot(1, 2, 2)
-    plt.plot(history.history['loss'], label='Train Loss')
-    plt.plot(history.history['val_loss'], label='Validation Loss')
-    plt.title('Loss over Epochs')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
-
-    plt.tight_layout()
-    plt.show()
-
 
 def build_model(input_shape):
     """
@@ -200,7 +169,7 @@ def train_model(model, X_train, y_train, X_val, y_val, epochs=10, batch_size=32)
                         validation_data=(X_val, y_val))
     return history
 
-def main(img_preprocessing = None, plot = True):
+def main(img_preprocessing = None):
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
         try:
@@ -229,11 +198,18 @@ def main(img_preprocessing = None, plot = True):
     input_shape = X_train.shape[1:]
     model = build_model(input_shape)
 
+    '''
+    ep=10
+    for i in range(ep):
+        history = train_model(model, X_train, y_train, X_test, y_test, epochs=1)
+        X_train, X_test, y_train, y_test = 0,0,0,0
+        X_train, X_test, y_train, y_test = create_dataset(
+            signature_dir, nonsig_dir, documents_dir, output_file = "data/splits/"+ preproc +"_test_files.txt",
+            preprocessing=img_preprocessing
+        )
+    '''
     # Train the model
     history = train_model(model, X_train, y_train, X_test, y_test, epochs=2)
-
-    if plot:
-        plot_training_history(history)
 
     # Evaluate the model
     test_loss, test_acc = model.evaluate(X_test, y_test, verbose=2)
