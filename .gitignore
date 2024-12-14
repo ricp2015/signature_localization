@@ -30,6 +30,9 @@ data/interim/nonsig_dataset/**
 data/interim/resized_signatures/**
 models/**
 data/splits/**
+reports/figures/**
+!reports/figures/plot_comparison.py
+!reports/figures/plot_pipeline.ipynb
 
 
 # Distribution / packaging

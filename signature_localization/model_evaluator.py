@@ -142,6 +142,6 @@ evaluate_all_documents_with_metrics(
     test_dir="data/raw/signverod_dataset/images",
     annotations_path="data/raw/fixed_dataset/full_data.csv",
     image_info_path="data/raw/fixed_dataset/updated_image_ids.csv",
-    img_preprocessing="canny",
+    img_preprocessing="laplacian",
     max_files=100
 )
