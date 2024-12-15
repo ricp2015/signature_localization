@@ -59,7 +59,7 @@ def calculate_mean_iou(folder):
 # Funzione per creare il grafico di confronto
 def plot_comparison(metrics_df, iou_results):
     # Crea un grafico per precision, recall, f1-score e IoU
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 6), dpi=140)
 
     # Plot precision, recall, f1-score con i colori definiti
     metrics_df[['Precision', 'Recall', 'F1-Score']].plot(kind='bar', ax=ax,
