@@ -4,6 +4,7 @@ import pandas as pd
 import ast
 from PIL import Image
 import localize_signatures
+import selective_search
 
 def convert_normalized_to_absolute(bbox, img_width, img_height):
     """
@@ -31,8 +32,8 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
     - max_files: Optional limit to the number of files to process.
     """
     preproc = img_preprocessing or "no_pre"
-    iou_csv="reports/" + preproc + "_iou_results.csv"
-    output_csv="reports/" + preproc + "_evaluation_metrics.csv"
+    iou_csv="reports/" + preproc + "_iou_results_fast.csv"
+    output_csv="reports/" + preproc + "_evaluation_metrics_fast.csv"
     # Load the list of test files
     with open(f"data/splits/{preproc}_test_files.txt", "r") as f:
         test_files = f.read().splitlines()
@@ -80,9 +81,7 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
         total_gt_signatures += len(ground_truth_boxes)
 
         # Call detect_signature for this document
-        detected_regions = localize_signatures.detect_signature(
-            img_preprocessing=img_preprocessing, doc_path=doc_path, plot_results=False
-        )
+        detected_regions = selective_search.detect_signatures_with_selective_search(doc_path, "signature_localization/ss_test_pieces", img_preprocessing, num_boxes=2000)
 
         total_detected_signatures += len(detected_regions)
 
