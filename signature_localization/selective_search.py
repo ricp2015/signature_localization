@@ -40,6 +40,8 @@ def apply_canny_edge_detection(image_path):
     """
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     edges = cv2.Canny(image, 100, 200)
+    #cv2.imwrite("signature_localization/debugging_ss/img.png", edges)  # Convert to uint8 for saving
+
     return edges
 
 
@@ -146,15 +148,15 @@ def initialize_bounding_boxes_with_oscillation(edges, num_boxes, image_info, avg
     # Initialize bounding boxes based on selected coordinates
     bounding_boxes = []
     for coord in selected_coords:
-        x, y = coord
+        y, x = coord
 
         # Oscillate width and height
         oscillated_width = int(random.uniform(0.8 * avg_width, 2 * avg_width))
         oscillated_height = int(random.uniform(0.8 * avg_height, 1.4 * avg_height))
 
         # Calculate bounding box coordinates
-        x1 = max(0, x - oscillated_width // 2)  # Ensure x1 is non-negative
-        y1 = max(0, y - oscillated_height // 2)  # Ensure y1 is non-negative
+        x1 = max(0, x - (oscillated_width // 2))  # Ensure x1 is non-negative
+        y1 = max(0, y - (oscillated_height // 2))  # Ensure y1 is non-negative
         x2 = x1 + oscillated_width
         y2 = y1 + oscillated_height
 
@@ -165,10 +167,10 @@ def initialize_bounding_boxes_with_oscillation(edges, num_boxes, image_info, avg
         if y2 > img_height:
             y2 = img_height
             y1 = max(0, y2 - oscillated_height)  # Adjust y1 to maintain box size
-
         bounding_boxes.append((x1, y1, x2, y2))
 
     return bounding_boxes
+
 
 
 
@@ -334,12 +336,11 @@ def detect_signatures_with_selective_search(image_path, model_path, output_dir, 
 
 if __name__ == "__main__":
     # Paths and parameters
-    image_path = "data/raw/signverod_dataset/images/X_118.jpeg"
+    image_path = "data/raw/signverod_dataset/images/zkd43f00_2.png"
     model_path = "models/canny_signature_classifier_model.h5"  # Make sure to use the correct path
     annotations_path = "data/raw/fixed_dataset/full_data.csv"  # Path to annotations CSV
     image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"  # Path to image metadata CSV
     output_dir = "signature_localization/ss_test_pieces"
 
     # Detect signatures
-    detect_signatures_with_selective_search(image_path, model_path, output_dir, annotations_path, image_info_path, num_boxes=200)
-
+    detect_signatures_with_selective_search(image_path, model_path, output_dir, annotations_path, image_info_path, num_boxes=2000)
