@@ -10,6 +10,7 @@ import uuid
 import random
 import pandas as pd
 import ast
+import localize_signatures
 
 def preprocess_image(image, target_size=(734, 177)):
     """
@@ -43,78 +44,6 @@ def apply_canny_edge_detection(image_path):
     #cv2.imwrite("signature_localization/debugging_ss/img.png", edges)  # Convert to uint8 for saving
 
     return edges
-
-
-def calculate_average_ratios(df):
-    """
-    Calculates the average width and height ratios of the bounding boxes relative to document dimensions.
-
-    Parameters:
-    - df: DataFrame containing information about signatures and images.
-
-    Returns:
-    - width_ratios: List of average width ratios for each document.
-    - height_ratios: List of average height ratios for each document.
-    """
-    width_ratios = []
-    height_ratios = []
-
-    # Group data by image ID to process each document separately
-    for image_id, group in df.groupby('image_id'):
-        # Extract document dimensions (height and width)
-        height = group.iloc[0]['height']
-        width = group.iloc[0]['width']
-
-        # Compute the normalized width and height for each bounding box
-        bbox_width_ratios = group['bbox'].apply(
-            lambda bbox: calculate_bbox_width_ratio(ast.literal_eval(bbox), width)
-        )
-        bbox_height_ratios = group['bbox'].apply(
-            lambda bbox: calculate_bbox_height_ratio(ast.literal_eval(bbox), height)
-        )
-
-        # Calculate the average width and height ratios for the document
-        avg_width_ratio = bbox_width_ratios.mean()
-        avg_height_ratio = bbox_height_ratios.mean()
-
-        # Store the ratios for this document
-        width_ratios.append(avg_width_ratio)
-        height_ratios.append(avg_height_ratio)
-
-    # Return the lists of width and height ratios
-    return width_ratios, height_ratios
-
-
-def calculate_bbox_width_ratio(bbox, img_width):
-    """
-    Calculates the normalized width of a bounding box relative to the document width.
-
-    Parameters:
-    - bbox: List [x_min, y_min, width, height] in normalized coordinates.
-    - img_width: Width of the image in pixels.
-
-    Returns:
-    - Normalized width ratio.
-    """
-    bbox_width = bbox[2] * img_width  # Scale the normalized width to pixel units
-    return bbox_width / img_width  # Compute the normalized ratio
-
-
-def calculate_bbox_height_ratio(bbox, img_height):
-    """
-    Calculates the normalized height of a bounding box relative to the document height.
-
-    Parameters:
-    - bbox: List [x_min, y_min, width, height] in normalized coordinates.
-    - img_height: Height of the image in pixels.
-
-    Returns:
-    - Normalized height ratio.
-    """
-    bbox_height = bbox[3] * img_height  # Scale the normalized height to pixel units
-    return bbox_height / img_height  # Compute the normalized ratio
-
-
 
 def initialize_bounding_boxes_with_oscillation(edges, num_boxes, image_info, avg_width_ratio, avg_height_ratio, file_name):
     """
@@ -171,31 +100,6 @@ def initialize_bounding_boxes_with_oscillation(edges, num_boxes, image_info, avg
 
     return bounding_boxes
 
-
-
-
-
-
-def calculate_iou(box1, box2):
-    """
-    Calculate Intersection over Union (IoU) between two bounding boxes.
-    """
-    x_left = max(box1[0], box2[0])
-    y_top = max(box1[1], box2[1])
-    x_right = min(box1[2], box2[2])
-    y_bottom = min(box1[3], box2[3])
-
-    if x_right <= x_left or y_bottom <= y_top:
-        return 0.0
-
-    intersection_area = (x_right - x_left) * (y_bottom - y_top)
-    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
-    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
-    union_area = box1_area + box2_area - intersection_area
-
-    return intersection_area / union_area
-
-
 def merge_similar_regions(bounding_boxes, iou_threshold=0.3):
     """
     Merge regions based on similarity using IoU.
@@ -205,7 +109,7 @@ def merge_similar_regions(bounding_boxes, iou_threshold=0.3):
         box = bounding_boxes.pop(0)
         to_merge = []
         for other_box in bounding_boxes:
-            if calculate_iou(box, other_box) > iou_threshold:
+            if localize_signatures.calculate_iou(box, other_box) > iou_threshold:
                 to_merge.append(other_box)
 
         # Merge all overlapping boxes into one
@@ -280,7 +184,7 @@ def detect_signatures_with_selective_search(image_path, model_path, output_dir, 
     # Filter signatures and calculate average ratios
     signatures = annotations[annotations['category_id'] == 1]
     merged_data = signatures.merge(image_info, left_on='image_id', right_on='id', suffixes=('_annotation', '_image'))
-    width_ratios, height_ratios = calculate_average_ratios(merged_data)
+    width_ratios, height_ratios = localize_signatures.calculate_average_ratios(merged_data)
 
     # Compute global average ratios
     avg_width_ratio = sum(width_ratios) / len(width_ratios)
