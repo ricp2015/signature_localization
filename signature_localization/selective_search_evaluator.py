@@ -81,7 +81,7 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
         total_gt_signatures += len(ground_truth_boxes)
 
         # Call detect_signature for this document
-        detected_regions = selective_search.detect_signatures_with_selective_search(doc_path, "signature_localization/ss_test_pieces", img_preprocessing, threshold=0.9, num_boxes=2000)
+        detected_regions = selective_search_funz.detect_signatures_with_selective_search(doc_path, "signature_localization/ss_test_pieces", img_preprocessing, threshold=0.9, num_boxes=2000)
 
         total_detected_signatures += len(detected_regions)
 
@@ -94,7 +94,7 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
                 iou = localize_signatures.calculate_iou(detected_box, gt_box)
                 if iou > max_iou:
                     max_iou = iou
-                if iou > 0.3:
+                if iou > 0.4:
                     matched_gt.add(signature_id)
 
             # Append IoU results for the CSV

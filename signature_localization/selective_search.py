@@ -11,7 +11,7 @@ import random
 import pandas as pd
 import ast
 import localize_signatures
-
+import binary_classifier_CNN
 
 
 def crop_and_resize_center(image, x1, y1, x2, y2, target_size=(734, 177)):
@@ -60,46 +60,11 @@ def crop_and_resize_center(image, x1, y1, x2, y2, target_size=(734, 177)):
     if cropped_region.shape[1] != target_width or cropped_region.shape[0] != target_height:
         cropped_region = cv2.resize(cropped_region, target_size)
 
-    return cropped_region / 255.0  # Normalize to [0, 1]
+    return cropped_region / 255.0, new_x1-x1, new_y1-y1  # Normalize to [0, 1]
 
 
 
-
-
-def preprocess_image(image, target_size=(734, 177)):
-    """
-    Preprocess the input image for the model.
-    """
-    image = cv2.resize(image, target_size)
-    return image 
-
-
-def initialize_model_and_directories(model_path, output_dir):
-    """
-    Initialize the trained model and prepare directories for output.
-    """
-    # Load the trained model
-    model = load_model(model_path)
-
-    # Prepare the output directory
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-    os.makedirs(output_dir)
-
-    return model
-
-
-def apply_canny_edge_detection(image_path):
-    """
-    Apply Canny edge detection to an input image.
-    """
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    edges = cv2.Canny(image, 100, 200)
-    #cv2.imwrite("signature_localization/debugging_ss/img.png", edges)  # Convert to uint8 for saving
-
-    return edges
-
-def initialize_bounding_boxes_with_oscillation(edges, num_boxes, image_info, avg_width_ratio, avg_height_ratio, file_name):
+def initialize_bounding_boxes_with_oscillation(edges, preprocessing, num_boxes, image_info, avg_width_ratio, avg_height_ratio, file_name):
     """
     Randomly select N edge coordinates and create bounding boxes with oscillating sizes.
 
@@ -123,8 +88,10 @@ def initialize_bounding_boxes_with_oscillation(edges, num_boxes, image_info, avg
     avg_height = int(avg_height_ratio * img_height)
 
     # Get the coordinates of all edge pixels
-    edge_coords = np.column_stack(np.where(edges > 0))
-
+    if preprocessing == "canny" or preprocessing == "sobel" or preprocessing =="laplacian":
+        edge_coords = np.column_stack(np.where(edges > 0))
+    else:
+        edge_coords = np.column_stack(np.where(edges < 50))
     # Randomly select N edge coordinates
     selected_coords = edge_coords[np.random.choice(edge_coords.shape[0], num_boxes, replace=False)]
 
@@ -178,54 +145,8 @@ def merge_similar_regions(bounding_boxes, iou_threshold=0.3):
         else:
             merged_boxes.append(box)
     return merged_boxes
-'''
-def classify_regions_with_model(image_path, model, bounding_boxes, output_dir):
-    """
-    Use the trained model to classify regions as signatures or not,
-    and save preprocessed regions for debugging.
-    """
-    # Load the full image in grayscale
 
-    results=[]
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    # Create a folder for debugging preprocessed regions
-    debugging_dir = "signature_localization/debugging_ss_modelinput"
-    if not os.path.exists(debugging_dir):
-        os.makedirs(debugging_dir)
-
-    for i, box in enumerate(bounding_boxes):
-        # Ensure the box coordinates are integers
-        x1, y1, x2, y2 = map(int, box)
-
-        # Crop the region from the image
-        cropped_region = image[y1:y2, x1:x2]
-
-        # Preprocess the cropped region for the mode
-        # Convert preprocessed_region back to uint8 for Canny edge detection
-        preprocessed_region_uint8 = preprocess_image((cropped_region).astype(np.uint8))
-
-        # Apply Canny edge detection
-        canny_cropped_region = cv2.Canny(preprocessed_region_uint8, 100, 200)
-
-        # Save the preprocessed region for debugging
-        debug_path = os.path.join(debugging_dir, f"region_{i}.png")
-        cv2.imwrite(debug_path, preprocessed_region_uint8)  # Save the uint8 preprocessed region
-        print(f"Saved preprocessed region to {debug_path}")
-
-        # Predict with the trained model
-        prediction = model.predict(np.expand_dims(canny_cropped_region/255, axis=0))[0][0]
-        results.append([box,prediction])
-        # Save the region with its probability in the filename
-        prob_str = f"{prediction:.4f}"
-        save_path = os.path.join(output_dir, f"{prob_str}_{uuid.uuid4().hex[:8]}.png")
-
-        cv2.imwrite(save_path, canny_cropped_region)
-        
-        print(f"Saved region with probability {prob_str} to {save_path}")
-
-    return results
-'''
-def classify_regions_with_model(image_path, model, bounding_boxes, output_dir):
+def classify_regions_with_model(image_path,preprocessing, model, bounding_boxes, output_dir):
     """
     Use the trained model to classify regions as signatures or not,
     and save preprocessed regions for debugging.
@@ -238,6 +159,8 @@ def classify_regions_with_model(image_path, model, bounding_boxes, output_dir):
     if not os.path.exists(debugging_dir):
         os.makedirs(debugging_dir)
 
+    target_size = (734, 177)  # Target size used for resizing cropped regions
+
     for i, box in enumerate(bounding_boxes):
         # Ensure the box coordinates are integers
         x1, y1, x2, y2 = map(int, box)
@@ -246,10 +169,10 @@ def classify_regions_with_model(image_path, model, bounding_boxes, output_dir):
         cropped_region = image[y1:y2, x1:x2]
 
         # Apply Canny edge detection to match training preprocessing
-        canny_cropped_region = cv2.Canny(cropped_region, 100, 200)
+        preprocessed_cropped_region = binary_classifier_CNN.preprocess_image(cropped_region, method=preprocessing)
 
         # Crop and resize to match the model's input size
-        preprocessed_region = crop_and_resize_center(canny_cropped_region, 0, 0, canny_cropped_region.shape[1], canny_cropped_region.shape[0])
+        preprocessed_region, a, b = crop_and_resize_center(preprocessed_cropped_region, 0, 0, preprocessed_cropped_region.shape[1], preprocessed_cropped_region.shape[0])
 
         # Save the preprocessed region for debugging
         debug_path = os.path.join(debugging_dir, f"region_{i}.png")
@@ -258,15 +181,28 @@ def classify_regions_with_model(image_path, model, bounding_boxes, output_dir):
 
         # Predict with the trained model
         prediction = model.predict(np.expand_dims(preprocessed_region, axis=0))[0][0]
-        results.append([box,prediction])
+        # Rescale the bounding box coordinates
+        rescaled_box = (
+            int(x1 + a),
+            int(y1 + b),
+            int(x2 - a),
+            int(y2 - b)
+        )
+
+
+        # Append rescaled bounding box and prediction to results
+        results.append([rescaled_box, prediction])
+
         # Save the region with its probability in the filename
         prob_str = f"{prediction:.4f}"
         save_path = os.path.join(output_dir, f"{prob_str}_{uuid.uuid4().hex[:8]}.png")
 
-        cv2.imwrite(save_path, canny_cropped_region)
-
+        #cv2.imwrite(save_path, canny_cropped_region)
+        cv2.imwrite(save_path, image[rescaled_box[1]:rescaled_box[3], rescaled_box[0]:rescaled_box[2]])
         print(f"Saved region with probability {prob_str} to {save_path}")
+    
     return results
+
 
 def filter_non_overlapping_regions(results, iou_threshold=0.6):
     """
@@ -299,12 +235,13 @@ def detect_signatures_with_selective_search(image_path, output_dir, img_preproce
 
     # Apply Canny edge detection
     print("Applying Canny edge detection...")
-    edges = apply_canny_edge_detection(image_path)
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    edges = binary_classifier_CNN.preprocess_image(image,method=img_preprocessing)
 
     # Initialize bounding boxes based on calculated average ratios
     print("Initializing bounding boxes...")
     file_name = os.path.basename(image_path)
-    bounding_boxes = initialize_bounding_boxes_with_oscillation(edges, num_boxes, image_info, avg_width_ratio, avg_height_ratio, file_name)
+    bounding_boxes = initialize_bounding_boxes_with_oscillation(edges, img_preprocessing, num_boxes, image_info, avg_width_ratio, avg_height_ratio, file_name)
 
     # Load the original image for drawing
     original_image = cv2.imread(image_path)
@@ -335,7 +272,7 @@ def detect_signatures_with_selective_search(image_path, output_dir, img_preproce
 
     # Classify regions with the trained model
     print("Classifying regions with the trained model...")
-    regions = classify_regions_with_model(image_path, model, merged_boxes, output_dir)
+    regions = classify_regions_with_model(image_path, img_preprocessing, model, merged_boxes, output_dir)
 
     # Filter results based on threshold
     results_above_threshold = [r for r in regions if r[1] >= threshold]
@@ -360,11 +297,10 @@ def detect_signatures_with_selective_search(image_path, output_dir, img_preproce
 if __name__ == "__main__":
     # Paths and parameters
     image_path = "data/raw/signverod_dataset/images/gsa_LAZ02206-SLA-3-_Z-01.png"
-    model_path = "models/canny_signature_classifier_model.h5"  # Make sure to use the correct path
     annotations_path = "data/raw/fixed_dataset/full_data.csv"  # Path to annotations CSV
     image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"  # Path to image metadata CSV
     output_dir = "signature_localization/ss_test_pieces"
     threshold = 0.8
-    img_preprocessing = "canny"
+    img_preprocessing = "threshold"
     # Detect signatures
     print(detect_signatures_with_selective_search(image_path, output_dir, img_preprocessing, threshold, num_boxes=2000))
