@@ -268,6 +268,26 @@ def classify_regions_with_model(image_path, model, bounding_boxes, output_dir):
         print(f"Saved region with probability {prob_str} to {save_path}")
     return results
 
+def filter_non_overlapping_regions(results, iou_threshold=0.6):
+    """
+    Filter the list of results to keep only non-overlapping regions based on IoU.
+    
+    Parameters:
+    - results: List of [bounding_box, prediction_score].
+    - iou_threshold: IoU threshold above which regions are considered overlapping.
+    
+    Returns:
+    - Filtered list of results.
+    """
+    filtered_results = []
+    while results:
+        # Sort results by prediction score (descending)
+        results.sort(key=lambda x: x[1], reverse=True)
+        current = results.pop(0)
+        filtered_results.append(current)
+        # Remove overlapping regions
+        results = [r for r in results if localize_signatures.calculate_iou(current[0], r[0]) < iou_threshold]
+    return filtered_results
 
 def detect_signatures_with_selective_search(image_path, output_dir, img_preprocessing, threshold, num_boxes=2000):
     # Prepare the output directory
@@ -292,7 +312,6 @@ def detect_signatures_with_selective_search(image_path, output_dir, img_preproce
     if not os.path.exists(debugging_dir):
         os.makedirs(debugging_dir)
 
-
     # Save an image with the initial bounding boxes drawn in blue
     debug_image = original_image.copy()
     for box in bounding_boxes:
@@ -301,7 +320,6 @@ def detect_signatures_with_selective_search(image_path, output_dir, img_preproce
     debug_path = os.path.join(debugging_dir, "initial_bounding_boxes.png")
     cv2.imwrite(debug_path, debug_image)
     print(f"Saved initial bounding boxes image to {debug_path}")
-
 
     # Merge similar regions (if necessary)
     print("Merging similar regions...")
@@ -318,7 +336,24 @@ def detect_signatures_with_selective_search(image_path, output_dir, img_preproce
     # Classify regions with the trained model
     print("Classifying regions with the trained model...")
     regions = classify_regions_with_model(image_path, model, merged_boxes, output_dir)
-    return [r for r, prob in regions if prob >= threshold]
+
+    # Filter results based on threshold
+    results_above_threshold = [r for r in regions if r[1] >= threshold]
+
+    # Filter non-overlapping results based on IoU
+    print("Filtering non-overlapping regions...")
+    filtered_results = filter_non_overlapping_regions(results_above_threshold)
+
+    # Save debug images after filtering
+    debug_image_filtered = original_image.copy()
+    for box, prob in filtered_results:
+        x1, y1, x2, y2 = map(int, box)
+        cv2.rectangle(debug_image_filtered, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Green rectangle
+    debug_path_filtered = os.path.join(debugging_dir, "filtered_bounding_boxes.png")
+    cv2.imwrite(debug_path_filtered, debug_image_filtered)
+    print(f"Saved filtered bounding boxes image to {debug_path_filtered}")
+
+    return [r[0] for r in filtered_results]
 
 
 
@@ -329,7 +364,7 @@ if __name__ == "__main__":
     annotations_path = "data/raw/fixed_dataset/full_data.csv"  # Path to annotations CSV
     image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"  # Path to image metadata CSV
     output_dir = "signature_localization/ss_test_pieces"
-    threshold = 0.5
+    threshold = 0.8
     img_preprocessing = "canny"
     # Detect signatures
     print(detect_signatures_with_selective_search(image_path, output_dir, img_preprocessing, threshold, num_boxes=2000))

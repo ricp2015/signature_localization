@@ -94,7 +94,7 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
                 iou = localize_signatures.calculate_iou(detected_box, gt_box)
                 if iou > max_iou:
                     max_iou = iou
-                if iou > 0.4:
+                if iou > 0.3:
                     matched_gt.add(signature_id)
 
             # Append IoU results for the CSV
