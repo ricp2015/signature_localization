@@ -167,8 +167,6 @@ def classify_regions_with_model(image_path,preprocessing, model, bounding_boxes,
 
         # Crop the region from the image
         cropped_region = image[y1:y2, x1:x2]
-
-        # Apply Canny edge detection to match training preprocessing
         preprocessed_cropped_region = binary_classifier_CNN.preprocess_image(cropped_region, method=preprocessing)
 
         # Crop and resize to match the model's input size
@@ -196,8 +194,6 @@ def classify_regions_with_model(image_path,preprocessing, model, bounding_boxes,
         # Save the region with its probability in the filename
         prob_str = f"{prediction:.4f}"
         save_path = os.path.join(output_dir, f"{prob_str}_{uuid.uuid4().hex[:8]}.png")
-
-        #cv2.imwrite(save_path, canny_cropped_region)
         cv2.imwrite(save_path, image[rescaled_box[1]:rescaled_box[3], rescaled_box[0]:rescaled_box[2]])
         print(f"Saved region with probability {prob_str} to {save_path}")
     
@@ -233,8 +229,7 @@ def detect_signatures_with_selective_search(image_path, output_dir, img_preproce
     
     image_info, avg_width_ratio, avg_height_ratio, model = localize_signatures.initialize_test(img_preprocessing)
 
-    # Apply Canny edge detection
-    print("Applying Canny edge detection...")
+    print("Applying preprocessing ...")
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     edges = binary_classifier_CNN.preprocess_image(image,method=img_preprocessing)
 
@@ -301,6 +296,6 @@ if __name__ == "__main__":
     image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"  # Path to image metadata CSV
     output_dir = "signature_localization/ss_test_pieces"
     threshold = 0.8
-    img_preprocessing = "threshold"
+    img_preprocessing = "canny"
     # Detect signatures
     print(detect_signatures_with_selective_search(image_path, output_dir, img_preprocessing, threshold, num_boxes=2000))

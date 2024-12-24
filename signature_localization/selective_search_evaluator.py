@@ -81,7 +81,7 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
         total_gt_signatures += len(ground_truth_boxes)
 
         # Call detect_signature for this document
-        detected_regions = selective_search_funz.detect_signatures_with_selective_search(doc_path, "signature_localization/ss_test_pieces", img_preprocessing, threshold=0.9, num_boxes=2000)
+        detected_regions = selective_search.detect_signatures_with_selective_search(doc_path, "signature_localization/ss_test_pieces", img_preprocessing, threshold=0.9, num_boxes=2000)
 
         total_detected_signatures += len(detected_regions)
 
@@ -136,11 +136,12 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
     print(f"IoU results saved to {iou_csv}")
     print(f"Precision: {precision:.4f}, Recall: {recall:.4f}, Accuracy: {accuracy:.4f}, F1-Score: {f1_score:.4f}")
 
-# Example call
-evaluate_all_documents_with_metrics(
-    test_dir="data/raw/signverod_dataset/images",
-    annotations_path="data/raw/fixed_dataset/full_data.csv",
-    image_info_path="data/raw/fixed_dataset/updated_image_ids.csv",
-    img_preprocessing="canny",
-    max_files=100
-)
+
+if __name__ == "__main__":
+    evaluate_all_documents_with_metrics(
+        test_dir="data/raw/signverod_dataset/images",
+        annotations_path="data/raw/fixed_dataset/full_data.csv",
+        image_info_path="data/raw/fixed_dataset/updated_image_ids.csv",
+        img_preprocessing=None,
+        max_files=100
+    )

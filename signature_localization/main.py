@@ -5,6 +5,7 @@ from create_nonsig_dataset import create_nonsig_dataset
 import localize_signatures
 import binary_classifier_CNN
 import find_signatures
+import selective_search_evaluator
 
 # Pre-processing methods
 methods = ['canny', 'sobel', 'laplacian', 'gaussian', 'threshold', None]
@@ -20,9 +21,15 @@ def create_data():
 def main(method):
     if method not in methods:
         raise ValueError(f"Unknown pre-processing method: {method}")
-    #create_data() # (!TODO checker to verify if already created) For now, just comment this line if already done.
-    binary_classifier_CNN.main(method) #!TODO builds and trains a binary classifier (CNN based). For now, comment this line if already trained.
-    #localize_signatures.detect_signature(method)
+    create_data()
+    binary_classifier_CNN.main(method)
+    selective_search_evaluator.evaluate_all_documents_with_metrics(
+        test_dir="data/raw/signverod_dataset/images",
+        annotations_path="data/raw/fixed_dataset/full_data.csv",
+        image_info_path="data/raw/fixed_dataset/updated_image_ids.csv",
+        img_preprocessing=method,
+        max_files=100
+    )
 
 if __name__ == "__main__":
     preprocessing_method = "canny"
