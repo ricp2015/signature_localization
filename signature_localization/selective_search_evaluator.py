@@ -32,8 +32,8 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
     - max_files: Optional limit to the number of files to process.
     """
     preproc = img_preprocessing or "no_pre"
-    iou_csv="reports/" + preproc + "_iou_results_fast.csv"
-    output_csv="reports/" + preproc + "_evaluation_metrics_fast.csv"
+    iou_csv="reports/fast/" + preproc + "_iou_results_fast.csv"
+    output_csv="reports/fast/" + preproc + "_evaluation_metrics_fast.csv"
     # Load the list of test files
     with open(f"data/splits/{preproc}_test_files.txt", "r") as f:
         test_files = f.read().splitlines()
@@ -81,7 +81,7 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
         total_gt_signatures += len(ground_truth_boxes)
 
         # Call detect_signature for this document
-        detected_regions = selective_search.detect_signatures_with_selective_search(doc_path, "signature_localization/ss_test_pieces", img_preprocessing, threshold=0.9, num_boxes=2000)
+        detected_regions = selective_search.detect_signatures_with_selective_search(doc_path, "signature_localization/ss_test_pieces", img_preprocessing, threshold=0.98, num_boxes=200)
 
         total_detected_signatures += len(detected_regions)
 

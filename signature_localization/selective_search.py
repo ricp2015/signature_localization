@@ -17,16 +17,17 @@ import binary_classifier_CNN
 def crop_and_resize_center(image, x1, y1, x2, y2, target_size=(734, 177)):
     """
     Crop a region from the image, centered at the given bounding box, 
-    and resize it to the target size if necessary.
+    and pad it with black pixels to reach the target size if necessary.
 
     Parameters:
-    - image: The input grayscale image.
-    - x1, y1, x2, y2: Bounding box coordinates.
-    - target_size: The desired size of the output image (width, height).
+    
+    image: The input grayscale image.
+    x1, y1, x2, y2: Bounding box coordinates.
+    target_size: The desired size of the output image (width, height).
 
-    Returns:
-    - The cropped and resized image.
-    """
+        Returns:
+        
+    The cropped and padded image."""
     crop_width = x2 - x1
     crop_height = y2 - y1
     target_width, target_height = target_size
@@ -42,26 +43,30 @@ def crop_and_resize_center(image, x1, y1, x2, y2, target_size=(734, 177)):
     # Define new crop coordinates, centered around the bounding box
     new_x1 = max(0, center_x - half_width)
     new_y1 = max(0, center_y - half_height)
-    new_x2 = new_x1 + target_width
-    new_y2 = new_y1 + target_height
-
-    # Adjust if the new crop exceeds image boundaries
-    if new_x2 > image.shape[1]:  # Exceeds width
-        new_x2 = image.shape[1]
-        new_x1 = max(0, new_x2 - target_width)
-    if new_y2 > image.shape[0]:  # Exceeds height
-        new_y2 = image.shape[0]
-        new_y1 = max(0, new_y2 - target_height)
+    new_x2 = min(image.shape[1], new_x1 + target_width)
+    new_y2 = min(image.shape[0], new_y1 + target_height)
 
     # Crop the region
     cropped_region = image[new_y1:new_y2, new_x1:new_x2]
 
-    # Resize if the cropped region does not match the target size
-    if cropped_region.shape[1] != target_width or cropped_region.shape[0] != target_height:
-        cropped_region = cv2.resize(cropped_region, target_size)
+    # Calculate padding needed to reach the target size
+    top_pad = max(0, half_height - (center_y - new_y1))
+    bottom_pad = max(0, target_height - cropped_region.shape[0] - top_pad)
+    left_pad = max(0, half_width - (center_x - new_x1))
+    right_pad = max(0, target_width - cropped_region.shape[1] - left_pad)
 
-    return cropped_region / 255.0, new_x1-x1, new_y1-y1  # Normalize to [0, 1]
+    # Pad the cropped region with black pixels
+    padded_region = cv2.copyMakeBorder(
+        cropped_region,
+        top_pad,
+        bottom_pad,
+        left_pad,
+        right_pad,
+        cv2.BORDER_CONSTANT,
+        value=0  # Black padding
+    )
 
+    return padded_region / 255.0, new_x1 - x1, new_y1 - y1  # Normalize to [0, 1]
 
 
 def initialize_bounding_boxes_with_oscillation(edges, preprocessing, num_boxes, image_info, avg_width_ratio, avg_height_ratio, file_name):
@@ -91,7 +96,7 @@ def initialize_bounding_boxes_with_oscillation(edges, preprocessing, num_boxes, 
     if preprocessing == "canny" or preprocessing == "sobel" or preprocessing =="laplacian":
         edge_coords = np.column_stack(np.where(edges > 0))
     else:
-        edge_coords = np.column_stack(np.where(edges < 50))
+        edge_coords = np.column_stack(np.where(edges < 90))
     # Randomly select N edge coordinates
     selected_coords = edge_coords[np.random.choice(edge_coords.shape[0], num_boxes, replace=False)]
 
@@ -101,8 +106,8 @@ def initialize_bounding_boxes_with_oscillation(edges, preprocessing, num_boxes, 
         y, x = coord
 
         # Oscillate width and height
-        oscillated_width = int(random.uniform(0.75 * avg_width, 1.25 * avg_width))
-        oscillated_height = int(random.uniform(0.85 * avg_height, 1.15 * avg_height))
+        oscillated_width = int(random.uniform(0.75 * avg_width, 2.3 * avg_width))
+        oscillated_height = int(random.uniform(0.85 * avg_height, 1.6 * avg_height))
 
         # Calculate bounding box coordinates
         x1 = max(0, x - (oscillated_width // 2))  # Ensure x1 is non-negative
@@ -229,7 +234,6 @@ def detect_signatures_with_selective_search(image_path, output_dir, img_preproce
     
     image_info, avg_width_ratio, avg_height_ratio, model = localize_signatures.initialize_test(img_preprocessing)
 
-    print("Applying preprocessing ...")
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     edges = binary_classifier_CNN.preprocess_image(image,method=img_preprocessing)
 
@@ -255,7 +259,8 @@ def detect_signatures_with_selective_search(image_path, output_dir, img_preproce
 
     # Merge similar regions (if necessary)
     print("Merging similar regions...")
-    merged_boxes = merge_similar_regions(bounding_boxes)
+    #merged_boxes = merge_similar_regions(bounding_boxes)
+    merged_boxes = bounding_boxes
     # Save an image with the merged bounding boxes drawn in red
     debug_image_merged = original_image.copy()
     for box in merged_boxes:
@@ -291,11 +296,11 @@ def detect_signatures_with_selective_search(image_path, output_dir, img_preproce
 
 if __name__ == "__main__":
     # Paths and parameters
-    image_path = "data/raw/signverod_dataset/images/gsa_LAZ02206-SLA-3-_Z-01.png"
+    image_path = "data/raw/signverod_dataset/images/nist_r0876_01.png"
     annotations_path = "data/raw/fixed_dataset/full_data.csv"  # Path to annotations CSV
     image_info_path = "data/raw/fixed_dataset/updated_image_ids.csv"  # Path to image metadata CSV
     output_dir = "signature_localization/ss_test_pieces"
     threshold = 0.8
     img_preprocessing = "canny"
     # Detect signatures
-    print(detect_signatures_with_selective_search(image_path, output_dir, img_preprocessing, threshold, num_boxes=2000))
+    print(detect_signatures_with_selective_search(image_path, output_dir, img_preprocessing, threshold, num_boxes=200))

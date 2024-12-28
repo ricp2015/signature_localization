@@ -3,97 +3,100 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
-# Definizione dei colori personalizzati
+# Define custom colors
 teal = mcolors.to_rgba('teal')
 factor = 0.75
 dark_teal = (teal[0] * factor, teal[1] * factor, teal[2] * factor, teal[3])
 maroon = mcolors.to_rgba('maroon')
 grey = mcolors.to_rgba('grey')
 
-# Funzione per aggregare i CSV di valutazione
-def aggregate_evaluation_metrics(folder):
+# Function to aggregate evaluation metrics from CSV files
+def aggregate_evaluation_metrics(folder, suffix=""):
     metrics = []
     method_names = []
     
-    # Scansione della cartella per trovare i file con nome {method_name}_evaluation_metrics.csv
-    for filename in os.listdir(folder):
-        if filename.endswith('_evaluation_metrics.csv'):
-            # Estrai il nome del metodo (senza estensione)
-            method_name = filename.replace('_evaluation_metrics.csv', '')
+    # Scan the folder for files matching {method_name}_evaluation_metrics{suffix}.csv
+    for filename in sorted(os.listdir(folder)):
+        if filename.endswith(f'_evaluation_metrics{suffix}.csv'):
+            # Extract the method name (without suffix and extension)
+            method_name = filename.replace(f'_evaluation_metrics{suffix}.csv', '')
             method_names.append(method_name)
             
-            # Leggi il file CSV
+            # Read the CSV file
             df = pd.read_csv(os.path.join(folder, filename))
             
-            # Aggiungi solo precision, recall, f1-score (escludendo accuracy)
+            # Append only precision, recall, and f1-score (excluding accuracy)
             metrics.append(df[['Precision', 'Recall', 'F1-Score']].iloc[0])
     
-    # Combina tutti i dati in un DataFrame
+    # Combine all data into a DataFrame
     metrics_df = pd.DataFrame(metrics, index=method_names)
-    return metrics_df
+    return metrics_df.sort_index()  # Ensure the DataFrame is sorted by method names
 
-# Funzione per calcolare l'IoU medio
-def calculate_mean_iou(folder):
+# Function to calculate the mean IoU
+def calculate_mean_iou(folder, suffix=""):
     iou_results = {}
     
-    # Scansione della cartella per trovare i file con nome {method_name}_iou_results.csv
-    for filename in os.listdir(folder):
-        if filename.endswith('_iou_results.csv'):
-            # Estrai il nome del metodo (senza estensione)
-            method_name = filename.replace('_iou_results.csv', '')
+    # Scan the folder for files matching {method_name}_iou_results{suffix}.csv
+    for filename in sorted(os.listdir(folder)):
+        if filename.endswith(f'_iou_results{suffix}.csv'):
+            # Extract the method name (without suffix and extension)
+            method_name = filename.replace(f'_iou_results{suffix}.csv', '')
             
-            # Leggi il file CSV
+            # Read the CSV file
             df = pd.read_csv(os.path.join(folder, filename))
             
-            # Filtra i valori di IoU maggiori di 0.01
+            # Filter IoU values greater than 0.01
             df_filtered = df[df['IoU'] > 0.01]
             
-            # Calcola l'IoU medio
+            # Calculate the mean IoU
             mean_iou = df_filtered['IoU'].mean()
             
-            # Memorizza il risultato
+            # Store the result
             iou_results[method_name] = mean_iou
     
-    return iou_results
+    # Return a sorted dictionary based on method names
+    return dict(sorted(iou_results.items()))
 
-# Funzione per creare il grafico di confronto
+# Function to create a comparison plot
 def plot_comparison(metrics_df, iou_results):
-    # Crea un grafico per precision, recall, f1-score e IoU
+    # Ensure metrics_df and iou_results are aligned
+    iou_series = pd.Series(iou_results).reindex(metrics_df.index)
+    
+    # Create a bar plot for precision, recall, and f1-score
     fig, ax = plt.subplots(figsize=(10, 6), dpi=140)
 
-    # Plot precision, recall, f1-score con i colori definiti
-    metrics_df[['Precision', 'Recall', 'F1-Score']].plot(kind='bar', ax=ax,
-        color=[maroon, grey, dark_teal])
+    # Plot precision, recall, and f1-score using defined colors
+    metrics_df[['Precision', 'Recall', 'F1-Score']].plot(kind='bar', ax=ax, color=[maroon, grey, dark_teal])
     
-    # Aggiungi i valori di IoU al grafico
+    # Add IoU values to the plot
     ax2 = ax.twinx()
-    ax2.plot(iou_results.keys(), iou_results.values(), color='black', marker='o', label='Mean IoU', linestyle='--')
+    ax2.plot(iou_series.index, iou_series.values, color='black', marker='o', label='Mean IoU', linestyle='--')
     
-    # Etichette e titolo
+    # Labels and title
     ax.set_xlabel('Method')
     ax.set_ylabel('Metric Values')
     ax2.set_ylabel('Mean IoU')
     ax.set_title('Evaluation Metrics and Mean IoU for Each Method')
     
-    # Legende
+    # Legends
     ax.legend(loc='upper left')
     ax2.legend(loc='upper right')
 
-    # Mostra il grafico
+    # Show the plot
     plt.tight_layout()
     plt.show()
 
-# Funzione principale per eseguire il tutto
-def main(folder):
-    # Aggregazione delle metriche di valutazione
-    metrics_df = aggregate_evaluation_metrics(folder)
+# Main function to run the pipeline
+def main(folder, suffix=""):
+    # Aggregate evaluation metrics
+    metrics_df = aggregate_evaluation_metrics(folder, suffix)
     
-    # Calcolo dell'IoU medio per ogni metodo
-    iou_results = calculate_mean_iou(folder)
+    # Calculate the mean IoU for each method
+    iou_results = calculate_mean_iou(folder, suffix)
     
-    # Unire le metriche e IoU nel grafico
+    # Combine metrics and IoU in the plot
     plot_comparison(metrics_df, iou_results)
 
-# Esegui lo script passando la cartella contenente i CSV
-folder = 'reports'  # Sostituisci con il percorso della cartella che contiene i CSV
-main(folder)
+# Run the script for the specified directories with appropriate suffixes
+main('reports/naive/', suffix="")
+main('reports/fast/', suffix="_fast")

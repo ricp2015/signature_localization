@@ -31,8 +31,8 @@ def evaluate_all_documents_with_metrics(test_dir, annotations_path, image_info_p
     - max_files: Optional limit to the number of files to process.
     """
     preproc = img_preprocessing or "no_pre"
-    iou_csv="reports/" + preproc + "_iou_results.csv"
-    output_csv="reports/" + preproc + "_evaluation_metrics.csv"
+    iou_csv="reports/naive/" + preproc + "_iou_results.csv"
+    output_csv="reports/naive/" + preproc + "_evaluation_metrics.csv"
     # Load the list of test files
     with open(f"data/splits/{preproc}_test_files.txt", "r") as f:
         test_files = f.read().splitlines()
