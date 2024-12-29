@@ -6,6 +6,7 @@ This repository contains the implementation of a pipeline for detecting and loca
 - [Dataset](#dataset)
 - [Methods](#methods)
 - [Installation](#installation)
+- [Code Structure](#code-structure)
 
 ---
 
