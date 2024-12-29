@@ -1,7 +1,6 @@
 black
 flake8
 isort
-pip
 python-dotenv
 kagglehub
 pandas
@@ -9,4 +8,10 @@ pillow
 scikit-learn
 tensorflow
 matplotlib
+torch
+opencv-python
+numpy
+tqdm
+keras
+
 -e .

@@ -7,7 +7,6 @@ from tensorflow.keras.models import load_model
 import matplotlib.pyplot as plt
 import shutil
 import uuid
-import random
 import pandas as pd
 import ast
 import localize_signatures
