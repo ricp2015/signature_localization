@@ -3,109 +3,143 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{hyperref}
-\usepackage{geometry}
+\usepackage[a4paper, left=2cm, right=2cm, top=2cm, bottom=2cm]{geometry}
 \usepackage{float}
-\geometry{margin=1in}
 
 \begin{document}
 
 \title{Handwritten Signature Detection and Localization in Documents}
 \author{Federico Iannini, Andrea Puddu, Riccardo Pitzanti \\
+\small \href{https://github.com/ricp2015/signature_localization}{https://github.com/ricp2015/signature\_localization}
+\\
 \small Foundations of Data Science – Sapienza University of Rome}
 \date{December 2024}
+
 \maketitle
 
 \begin{abstract}
-% !TODO revise
-Localizing handwritten signatures in scanned documents is useful for automating workflows in industries such as legal, banking, and archival systems. This report explores three distinct approaches to address this task: a naive grid-based method, a selective search-based approach leveraging image features, and a state-of-the-art Faster R-CNN model. Each method is evaluated for its ability to propose and classify regions of interest, with selective search dynamically adapting to document characteristics and Faster R-CNN providing the highest accuracy via end-to-end training. The pipeline integrates preprocessing techniques, including edge detection and image filters, to enhance signature localization accuracy. Results demonstrate the trade-offs between simplicity, computational efficiency, and performance across the approaches. Future work aims to further optimize region proposal strategies, explore advanced architectures and expand towards broader use cases.
+Localizing handwritten signatures in scanned documents is useful for automating workflows in industries such as legal, banking, and archival systems. This report explores three distinct approaches to address this task: a fixed grid-based method, a selective search-based approach leveraging image features, and a state-of-the-art Faster R-CNN model. Each method is evaluated for its ability to propose and classify regions of interest, with Faster R-CNN providing the highest accuracy via end-to-end training. The pipeline integrates preprocessing techniques, including edge detection and image filters, to enhance signature localization accuracy. Results demonstrate the trade-offs between simplicity, computational efficiency, and performance across the approaches. Future work aims to further optimize region proposal strategies, explore advanced architectures and expand towards broader use cases.
 \end{abstract}
 
 \section{Introduction}
-%!TODO improve
 This project focuses on automating the detection and localization of handwritten signatures in scanned documents. By identifying and bounding signatures, the pipeline reduces manual labor and improves workflow efficiency in industries like legal and banking. The approach integrates machine learning, edge detection techniques, and region-based localization to handle diverse document formats and scenarios. 
 
 \section{Related Work}
-%!TODO reference more sources.
-Handwritten signature detection has been a key area of research. Wu et al.~\cite{wu2021} introduced object detection models for handwriting localization, while Cüceloğlu and Oğul~\cite{cuceloglu2018} developed a specific method for detecting signatures in scanned documents. Selective search, introduced by Uijlings et al.~\cite{victor2013}, is used here for bounding box initialization, enabling efficient region proposal generation.
+
+Handwritten signature localization has garnered significant attention in the field of document analysis. Wu et al.\cite{wu2021}, Cüceloğlu and Oğul\cite{cuceloglu2018} introduced object detection models specifically tailored for handwriting localization tasks. Segmentation-based approaches like those presented by Roy et al.\cite{roy2020} leverage fully convolutional networks coupled with refinement layers to enhance the precision of offline handwritten signature localization. Alaeiyan\cite{alaeiyan2022} explored the application of deep learning architectures in signature verification systems. The use of selective search for bounding box initialization, as proposed by Uijlings et al.~\cite{victor2013}, facilitates dynamic region identification by leveraging image features.
 
 \section{Dataset}
 %!TODO revise
 The dataset, SignverOD, consists of 2765 scanned document images with 7103 bounding boxes annotated across four categories: handwritten signatures, initials, redactions, and dates. For this project, the focus is solely on the "signature" category. These documents are sourced from diverse repositories, including Tobacco800, NIST.gov Special Database, a bank checks dataset, and GSA lease documents, for a broad representation of document types. All documents in the dataset vary in size, with bounding box annotations provided in normalized coordinates relative to document dimensions. The dataset is split into 1991 training images, 221 for validation, and 553 for testing, with 4451 bounding boxes specifically annotated as signatures. To further support the model, non-signature crops are generated by masking annotated signature regions and extracting random patches, creating a balanced dataset necessary for training a binary classifier.
 
 \section{Pipeline Implementation}
-%!TODO revise the whole section
-The pipeline is designed to pre-process data, train models, and localize signatures effectively. Key steps include:
+The pipeline is designed to pre-process data, train models, and localize signatures. Basic steps include:
 
 \subsection{Data Pre-processing}
 Data pre-processing involves:
 \begin{itemize}
-    \item \textbf{Download of the Dataset}: The dataset is downloaded from Kaggle~\cite{dataset} and then fixed (see:~\cite{dataset_fix}). Train and test files are merged in order to ensure a custom split of data.
+    \item \textbf{Dataset Download}: The dataset is sourced from Kaggle\cite{dataset} and corrected to address inconsistencies (see:~\cite{dataset_fix}). Training and testing files are merged to enable a custom data split.
     \item \textbf{Cropping Signatures}: Images are cropped to bounding boxes around their respective annotated signatures.
     \item \textbf{Resizing}: Cropped signatures are resized to a uniform dimension to standardize input for the CNN. This uniform dimension is obtained by computing the mean height and width of all the documents (734x177 pixels).
     \item \textbf{Non-Signature Generation}: Using masked images, non-signature regions are extracted, avoiding overlap with annotated signatures.
-    \item \textbf{Image pre-processing}: If specified, edge detection techniques such as Canny, Sobel, and Laplacian are employed. It is possible to choose also a Gaussian filter, a binary mask threshold or no pre-processing at all.
+    \item \textbf{Image Pre-processing}: Edge detection techniques (Canny, Sobel, Laplacian), Gaussian filtering, binary mask thresholding, or no pre-processing can be applied as specified.
 \end{itemize}
 
 \subsection{Model Training}
 
-The goal of the model is to classify sections of a document as either containing a handwritten signature or not. The training data consist of cropped and preprocessed sections of documents, where each crop is labeled as either a signature or a non-signature.
-Given that the input data are images, we used a CNN structure.
-The architecture used in this project is shown in Figure~\ref{fig:cnn_architecture}. It is a relatively simple model that consists in a few layers: \begin{itemize} \item \textbf{Convolutional Layer}: Extracts spatial features from the input image using filters, followed by a Leaky ReLU activation function. \item \textbf{Batch Normalization}: Normalizes the activations to accelerate training and reduce sensitivity to initialization. \item \textbf{Max-Pooling Layer}: Reduces the spatial dimensions of the feature maps while retaining the most salient information. \item \textbf{Dense Layers}: Fully connected layer maps the extracted features to a binary classification output for which the sigmoid activation function is used. \end{itemize}
+The goal of the model is to classify sections of a document as either containing a handwritten signature or not. Given that the input data are images, we used a CNN structure. The architecture used in this project, shown in Figure~\ref{fig:cnn_architecture}, is a simple model consisting of convolutional, pooling, and dense layers: \begin{itemize} \item \textbf{Convolutional Layers}: Extract spatial features from the input image using filters, followed by a Leaky ReLU activation function. \item \textbf{Max-Pooling Layers}: Reduce the spatial dimensions of the feature maps while retaining the most salient information. \item \textbf{Dense Layers}: Fully connected layer maps the extracted features to a binary classification output for which the sigmoid activation function is used. \end{itemize}
 
-We experimented with deeper architectures (e.g., more convolutional layers, dropout for regularization), but observed that even this minimal configuration achieved excellent performance, with an accuracy of approximately 97\% and a low binary cross-entropy loss. Given this performance and to optimize resources usage, we selected this simple architecture to reduce training time and computational costs while maintaining high accuracy.
-
+Deeper architectures (e.g., additional convolutional layers and dropout) were tested, but this configuration was chosen for its balance of efficiency and performance, achieving approximately 97\% accuracy and a low binary cross-entropy loss.
 \begin{figure}[H]
     \centering
-    \includegraphics[scale=0.7]{signmodel.png}
+    \includegraphics[scale=0.17]{net.png}
     \caption{CNN Architecture used for Signature Detection.}
     \label{fig:cnn_architecture}
 \end{figure}
 
-This lightweight network proved to be effective and efficient for the task at hand, providing a robust foundation for classifying document sections for the signature detection pipeline.
-
 \subsection{Region Proposal and Classification}
-During testing, bounding box proposals are generated by leveraging one of two different approaches (see Section 5). These regions are classified as containing signatures or not using the trained CNN. Detected regions with a confidence score above a threshold ($\ge$ 90\%) are retained.
+Bounding box proposals during testing are generated using either a static grid-based method or a selective search-based approach. The first method divides the document into uniform grid regions and passes each region to a CNN classifier, which determines whether it contains a signature. While simple, this approach is inefficient, as it does not adapt to document features and processes many irrelevant regions, leading to higher computational costs.
 
-\subsection{Post-Processing}
-Bounding boxes are merged if they overlap significantly (IoU $\ge$ 40\%). They are then rescaled and saved with their confidence scores.
+The selective search-based method improves upon this by introducing a dynamic region proposal mechanism. Instead of dividing the document into a fixed grid, selective search identifies potential regions of interest dynamically. A set of bounding boxes is initialized at random coordinates within ink-detected parts of the document. The size and aspect ratio of these bounding boxes are scaled relative to a precomputed "base dimension", derived from the average dimensions of annotated bounding boxes in the training dataset (see Resizing, in 4.1). To introduce variability, oscillating factors are applied to the width and height of the base dimension, resulting in varied bounding boxes. 
+
+Each bounding box is classified by the CNN, which determines whether it contains a signature. Only bounding boxes with classification confidence scores exceeding a specified threshold ($\ge$ 90\%) are retained.
 
 
-\section{Methods}
-%!TODO revise
-At first, we decided to implement a naive method from scratch, that relies on a fixed grid approach to divide documents into uniform regions. These regions are then passed to the binary classifier CNN, trained to differentiate between signature and non-signature areas. The naive approach does not dynamically adapt region proposals to document features. The lack of a mechanism to prioritize regions likely to contain signatures results in an increased computational cost, as the model processes many irrelevant regions.
+\section{Faster R-CNN}
+A Faster R-CNN model, a state-of-the-art object detection framework, was implemented to assess its suitability for the task of handwritten signature localization. The model combines region proposal and classification into an end-to-end trainable system and was fine-tuned on the SignverOD dataset.
 
-The selective search-based method improves upon the naive approach by introducing a dynamic region proposal mechanism. Instead of dividing the document into a fixed grid, selective search identifies potential regions of interest dynamically. The approach begins by extracting ink-detected regions from the document to locate high-gradient areas, which are indicative of potential signature placements. A set of bounding boxes is then initialized at random coordinates within these ink-detected parts of the document. The size and aspect ratio of these bounding boxes are scaled relative to a precomputed "base dimension", derived from the average dimensions of annotated bounding boxes in the training dataset. To introduce variability, oscillating factors are applied to the width and height of the base dimension, resulting in varied bounding boxes. Each bounding box is then classified by the CNN, which determines whether it contains a signature. Only bounding boxes with classification confidence scores exceeding a specified threshold are retained. This approach significantly reduces the number of irrelevant regions passed to the classifier, prioritizing areas more likely to contain signatures. Finally, overlapping bounding boxes are merged in a post-processing step using Intersection over Union (IoU) metrics. This ensures non-redundant predictions. Compared to the naive approach, this method dynamically adapts to document features and leverages edge detection to propose meaningful regions for classification, improving both accuracy and computational efficiency.
-
-The third approach regards a Faster R-CNN model, a state of the art object detection framework widely used for region-based tasks. Unlike the pipeline described above, Faster R-CNN combines region proposal and classification into a single, end-to-end trainable model. The model consists of a Region Proposal Network (RPN) that generates potential bounding boxes directly from image features. These proposals are refined and classified in subsequent network layers. The Faster R-CNN used in this project is implemented in PyTorch and fine-tuned on the SignverOD dataset. Its architecture allows it to learn spatial hierarchies and detect signatures of varying sizes and orientations. While the Faster R-CNN achieves superior performance in terms of accuracy and IoU, it requires more computational resources and longer inference times compared to the selective search-based method.
-
+The dataset images were preprocessed using Canny edge detection and resized to a resolution of 400×400. Additionally, the anchor generator was configured to produce wide rather than tall bounding boxes.
 
 \section{Performance Evaluation}
-Performance is measured for both methods (naive and selective search) using precision, recall, F1 score, and IoU metrics. A bounding box is considered a true positive if its IoU with the ground truth is above 0.4. The iterative localization process ranks regions by confidence, removing overlapping predictions. These performances are then compared with the results obtained by the Faster-RCNN.
+Performance is evaluated for each method using precision, recall, F1 score, and Intersection over Union (IoU) metrics. A bounding box is classified as a true positive if its IoU with the ground truth exceeds 0.4. The iterative localization process ranks regions based on confidence scores, removing overlapping predictions through non-maximum suppression. The results of these methods are then compared with those obtained using the Faster R-CNN model.
 
 \section{Results}
-%!TODO Insert graph comparison, or (better) table.
 
 
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\multicolumn{5}{|c|}{\textbf{Method 1: Fixed Grid-Based Approach}} \\ \hline
+\textbf{Preprocessing Technique} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Mean IoU} \\ \hline
+no preprocessing              & 0.1654             & 0.3158          & 0.2171            & 0.4168            \\ \hline
+binary mask thresholding            & 0.2879             & 0.3707          & 0.3241            & 0.3845            \\ \hline
+canny                 & 0.2964             & 0.4029          & 0.3416            & 0.3878            \\ \hline
+sobel                 & 0.6818             & 0.1531          & 0.2500            & 0.4060            \\ \hline
+gaussian              & 0.1916             & 0.3380          & 0.2446            & 0.3631            \\ \hline
+laplacian             & 0.4368             & 0.3290          & 0.3753            & 0.3887            \\ \hline
+\end{tabular}
 
-\section{Conclusion(?) and Future Work}
-% !TODO expand
-Future work includes refining region proposal methods, incorporating advanced models like YOLO, and extending functionality to include forgery detection.
+\vspace{0.5cm}
+
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\multicolumn{5}{|c|}{\textbf{Method 2: Selective Search-Based Approach}} \\ \hline
+\textbf{Preprocessing Technique} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Mean IoU} \\ \hline
+no preprocessing          & 0.1109             & 0.4785          & 0.1800            & 0.4427            \\ \hline
+binary mask thresholding       & 0.3770             & 0.3366          & 0.3557            & 0.4044            \\ \hline
+canny             & 0.1956             & 0.3757          & 0.2572            & 0.3951            \\ \hline
+sobel             & 0.4118             & 0.1429          & 0.2121            & 0.4094            \\ \hline
+gaussian          & 0.1297             & 0.5286          & 0.2083            & 0.4075            \\ \hline
+laplacian         & 0.2177             & 0.3939          & 0.2804            & 0.4113            \\ \hline
+\end{tabular}
+\vspace{0.5cm}
+
+\begin{tabular}{|l|c|c|c|c|}
+    \hline
+    \multicolumn{5}{|c|}{\textbf{Method 3: Faster R-CNN}} \\ \hline
+    \textbf{Preprocessing Technique} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Mean IoU} \\ \hline
+    canny             & 0.8991             & 0.5542          & 0.5218            & 0.6319            \\ \hline
+    \end{tabular}
+\caption{\centering Evaluation Metrics and Mean IoU for Methods 1 (Fixed Grid-Based Approach) and 2 (Selective Search Approach) under Different Preprocessing Techniques. Method 3 (Faster R-CNN) is evaluated using only Canny preprocessing.}
+\end{table}
+
+Table 1 summarizes the performance of the two proposed methods under various preprocessing techniques. The results indicate that preprocessing, whether by applying no modifications, edge detection, or binary mask thresholding, has a significant impact on performance metrics. For Method 1, Laplacian filtering achieves the best F1-score (0.3753), while for Method 2, binary mask thresholding provides the highest F1-score (0.3557). Overall, the mean IoU values remain in a moderate range (approximately 0.36–0.44). Notably, Method 2 achieves the highest mean IoU (0.4427) without preprocessing, but its corresponding F1-score is considerably lower (0.1800).  
+
+The two methods show comparable performance in terms of precision and recall, but Method 2 significantly reduces execution time. So, despite the slight decrease in F1-score, the improved mean IoU and faster runtime make Method 2 preferable in many applications. However, as highlighted earlier, a more advanced detector such as Faster R-CNN surpasses these two-step pipelines in both accuracy and adaptability. Future improvements to the first two methods should focus on refining region proposal strategies and integrating more advanced preprocessing techniques to close the performance gap with state-of-the-art solutions.
+
+\section{Future Work}
+A core area for improvement is the refinement of region proposal methods, which could involve leveraging existing algorithms or developing new, more effective ones. Dynamic approaches, such as adaptive bounding box generation, offer significant potential for improving Intersection over Union (IoU) metrics, as static bounding box sizes often fail to accommodate varying signature dimensions. Another promising direction is the adoption of advanced deep learning models like YOLO and Transformer-based architectures. Additionally, the system's functionality could be expanded to include broader use cases, such as forgery detection.
 
 \section{Roles}
 \begin{itemize}
     \item \textbf{Data pre-processing, first region proposal algorithm implementation}: Federico, Riccardo
-    \item \textbf{Selective search and CNN model}: Federico
+    \item \textbf{Selective search based algorithm and CNN model}: Federico
     \item \textbf{Performance evaluation and data visualization}: Riccardo
     \item \textbf{Faster R-CNN}: Andrea
 \end{itemize}
 
 \begin{thebibliography}{9}
-\bibitem{wu2021} Wu, Yuli, Yucheng Hu, and Suting Miao. "Object Detection Based Handwriting Localization." \textit{arXiv preprint} (2021). Available online: \url{https://arxiv.org/pdf/2106.14989}.
-\bibitem{cuceloglu2018} Cüceloğlu, İlkhan, and Hasan Oğul. "Detecting handwritten signatures in scanned documents." \textit{ResearchGate} (2018). Available online: \url{https://www.researchgate.net/publication/326271482}.
-\bibitem{victor2013} Uijlings, J.R.R., et al. "Selective Search for Object Recognition." \textit{International Journal of Computer Vision} (2013). Available online: \url{https://ivi.fnwi.uva.nl/isis/publications/2013/UijlingsIJCV2013/UijlingsIJCV2013.pdf}.
-\bibitem{dataset} "SignverOD Dataset." Kaggle. Available online: \url{https://www.kaggle.com/datasets/victordibia/signverod}.
-\bibitem{dataset_fix} "Fixing the SignverOD Dataset." Kaggle. Available online: \url{https://www.kaggle.com/code/alexhorduz/fixing-signverod-dataset}.
+\bibitem{wu2021} Wu, Yuli, Yucheng Hu, and Suting Miao. "Object Detection Based Handwriting Localization." \textit{arXiv preprint} (2021). \url{https://arxiv.org/pdf/2106.14989}.
+\bibitem{cuceloglu2018} Cüceloğlu, İlkhan, and Hasan Oğul. "Detecting handwritten signatures in scanned documents." \textit{ResearchGate} (2018). \url{https://www.researchgate.net/publication/326271482}.
+\bibitem{alaeiyan2022} Alaeiyan, Mehdi. "Handwritten Signature Verification System Using Deep Learning." \textit{PhilArchive preprint} (2022). \url{https://philarchive.org/archive/ALAHSV}.
+\bibitem{roy2020} Roy, Ankita, et al. "FCN+RL: A Fully Convolutional Network followed by Refinement Layers to Offline Handwritten Signature Segmentation." \textit{arXiv preprint} (2020). \url{https://arxiv.org/pdf/2005.14229}.
+\bibitem{victor2013} Uijlings, J.R.R., et al. "Selective Search for Object Recognition." \textit{International Journal of Computer Vision} (2013). \url{https://ivi.fnwi.uva.nl/isis/publications/2013/UijlingsIJCV2013/UijlingsIJCV2013.pdf}.
+\bibitem{dataset} "SignverOD Dataset." Kaggle. \url{https://www.kaggle.com/datasets/victordibia/signverod}.
+\bibitem{dataset_fix} "Fixing the SignverOD Dataset." Kaggle. \url{https://www.kaggle.com/code/alexhorduz/fixing-signverod-dataset}.
+\bibitem{rcnn video} "Faster R-CNN: Faster than Fast R-CNN!" Youtube.  \url{https://www.youtube.com/watch?v=auHkGHM-x_M}.
 \end{thebibliography}
+
 
 
 \end{document}
