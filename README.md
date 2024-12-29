@@ -1,51 +1,41 @@
-# signature_localization
+# Handwritten Signature Detection and Localization
 
-<a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
-    <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
-</a>
+This repository contains the implementation of a pipeline for detecting and localizing handwritten signatures in scanned documents. The project explores three distinct approaches for this task: a fixed grid-based method, a selective search-based approach, and a state-of-the-art Faster R-CNN model. Each method leverages machine learning and preprocessing techniques to propose and classify regions of interest.
 
-A short description of the project.
+## Table of Contents
+- [Dataset](#dataset)
+- [Methods](#methods)
+- [Installation](#installation)
 
-## Project Organization
+---
 
-### Dataset Preparation and Image Preprocessing
-* **Image Cropping**:
-  * Extract sections containing signatures based on annotated bounding boxes.
-* **Dimensional Normalization**:
-  * Apply padding to standardize image sizes.
-* **Creation of Non-Signature Images**:
-  * Extract random sections from documents that do not overlap with the annotated bounding boxes.
-  * *Extra*: Generate synthetic false positives with artificial noise.
-* **Edge Detection Application**:
-  * Create images with edge detection applied. Various techniques can be tested, with each version given to the CNN for benchmarking (e.g., no edge detection vs. Canny vs. Sobel vs. Laplacian).
+## Dataset
+The dataset, [SignverOD](https://www.kaggle.com/datasets/victordibia/signverod), consists of scanned document images annotated with bounding boxes for signatures.
 
-### Model Training
-* **Dataset Splitting**:
-  * Divide the dataset into training, validation, and test sets.
-* **Defining and Configuring the CNN**:
-  * Set up a CNN for binary classification (signature/no signature).
-* **Training the Model**:
-  * Monitor metrics during training:
-    * Loss, accuracy, precision, recall, F1-score.
-* **Save the Trained Model Parameters**.
+## Methods
+1. **Fixed Grid-Based Method**: Divides documents into a fixed grid of regions, each classified using a CNN.
+2. **Selective Search-Based Method**: Proposes regions based on image features like gradients and textures.
+3. **Faster R-CNN**: A state-of-the-art object detection model fine-tuned for handwritten signature localization.
 
-### Document Segmentation
-* **Splitting Documents into Sections**:
-  * Apply a sliding window with fixed dimensions and overlap.
-* **Testing the Classifier on Generated Sections**.
+## Installation
 
-### Signature Localization
-* **Identify the Window with the Highest Classification Score**.
-* **Optional**:
-  * Use a secondary model or algorithm to refine the bounding box precision.
+Clone the repository:
+```
+git clone https://github.com/yourusername/signature_localization.git
+cd signature_localization
+```
 
-### Final Validation and Testing
-* **Evaluate CNN Performance with Metrics**:
-  * Precision, recall, F1-score for classification.
-  * Intersection over Union (IoU) for localization.
+Install the required dependencies:
+```
+pip install -r requirements.txt
+```
 
-### Extra: Feature Extraction for SVMs + SVM Model Development (Refer to Relevant Papers)
-* **Feature Extraction**:
-  * Histogram of Oriented Gradients (HOG).
-  * Local Binary Patterns (LBP).
-  * Edge detection and edge statistics.
+## Code Structure
+
+The repository follows the [Cookiecutter Data Science](https://drivendata.github.io/cookiecutter-data-science/) template:
+
+- **`docs/`**: Includes the project report.
+- **`data/`**: Where the dataset is stored during the first phase of the pipeline.
+- **`signature_localization/`**: Contains Python files. Run `main.py` to execute the pipeline.
+- **`reports/`**: Stores evaluation metrics, visualizations, and results generated during experiments.
+- **`models/`**: Stores trained models.
