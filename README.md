@@ -1,8 +1,8 @@
 # Handwritten Signature Detection and Localization
 
-This repository contains the implementation of a pipeline for detecting and localizing handwritten signatures in scanned documents. The project explores three distinct approaches for this task: a fixed grid-based method, a selective search-based approach, and a state-of-the-art Faster R-CNN model. Each method leverages machine learning and preprocessing techniques to propose and classify regions of interest.
+This repository contains the implementation of a pipeline for detecting and localizing handwritten signatures in scanned documents. The project explores three distinct approaches for this task: a fixed grid-based method, a selective search-based approach, and a state-of-the-art Faster R-CNN model. Each method leverages machine learning and preprocessing techniques to propose and classify regions of interest. See the [report](docs/Project_Report.pdf) for more details.
 
-In the images below, the first image shows the initial bounding boxes proposed by the selective search-based method. The second image shows the bounding boxes after filtering out overlapping regions and non-signature regions.
+In the images below, the first image shows the initial bounding boxes proposed by the selective search-based method. The second image shows the selected bounding box after filtering out overlapping regions and non-signature regions.
 
 ![Localization Phase 1](reports/figures/initial_bounding_boxes.png "Region proposal phase")
 
