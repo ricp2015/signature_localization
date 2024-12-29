@@ -29,7 +29,7 @@ The dataset, [SignverOD](https://www.kaggle.com/datasets/victordibia/signverod),
 
 Clone the repository:
 ```
-git clone https://github.com/yourusername/signature_localization.git
+git clone https://github.com/ricp2015/signature_localization.git
 cd signature_localization
 ```
 
