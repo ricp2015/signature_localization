@@ -33,6 +33,8 @@ data/splits/**
 reports/figures/**
 !reports/figures/plot_comparison.py
 !reports/figures/plot_pipeline.ipynb
+!reports/figures/initial_bounding_boxes.png
+!reports/figures/filtered_bounding_boxes.png
 
 
 # Distribution / packaging
